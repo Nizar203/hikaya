@@ -109,6 +109,8 @@ video{width:100%;border-radius:12px;background:#000;max-height:520px}
       <label class="t">الأبطال</label><div class="chips" data-k="heroes"></div>
       <label class="t">نوع القصة</label><div class="chips" data-k="genre"></div>
       <label class="t">شكل الصورة</label><div class="chips" data-k="look"></div>
+      <label class="t" for="engine">محرك الذكاء</label>
+      <select id="engine"><option value="saudi">سعودي AI</option><option value="claude">Claude</option></select>
       <label class="t" for="dialect">اللهجة</label>
       <select id="dialect"><option>سعودية</option><option>خليجية</option><option>مصرية</option><option>شامية</option><option>فصحى مبسطة</option></select>
       <label class="t" for="count">عدد الحلقات</label>
@@ -161,7 +163,7 @@ function toast(m,bad){const el=$('#genStatus');el.textContent=m;el.className='st
 
 /* ---------- AI ---------- */
 async function ask(prompt){
-  const r=await api('/api/ai',{method:'POST',body:JSON.stringify({prompt})});
+  const r=await api('/api/ai',{method:'POST',body:JSON.stringify({prompt,engine:$('#engine').value})});
   try{return JSON.parse(r.text.replace(/^[^{]*/,'').replace(/[^}]*$/,''))}catch(_){throw{message:'الرد ما كان بالشكل المطلوب، جرّب مرة ثانية'}}
 }
 function biblePrompt(){
@@ -235,7 +237,7 @@ function renderStudio(){
   const mine=S.series;
   $('#myTabs').innerHTML=mine.map(s=>`<button class="chip" aria-pressed="${s.id===S.cur}" data-id="${esc(s.id)}">${esc(s.title)}</button>`).join('');
   const s=mine.find(x=>x.id===S.cur)||mine[0];
-  if(!s){$('#work').innerHTML=`<div class="empty"><h2>ما عندك مسلسلات بعد</h2><p class="note">اختر الأبطال ونوع القصة واضغط «اكتب المسلسل».</p>${S.ai?'':'<p class="note err">مفتاح الذكاء الاصطناعي غير مضاف بعد في إعدادات Render.</p>'}</div>`;return}
+  if(!s){$('#work').innerHTML=`<div class="empty"><h2>ما عندك مسلسلات بعد</h2><p class="note">اختر الأبطال ونوع القصة واضغط «اكتب المسلسل».</p>${S.ai?'':'<p class="note err">أضف مفتاح سعودي AI أو Claude في إعدادات Render.</p>'}</div>`;return}
   S.cur=s.id;
   const pubCount=s.episodes.filter(e=>e.published).length;
   $('#work').innerHTML=`<div class="bible">
@@ -396,7 +398,7 @@ $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const m=$
   try{await api('/api/login',{method:'POST',body:JSON.stringify({password:$('#pw').value})});S.canEdit=true;S.assets=true;$('#pw').value='';await loadAll()}catch(err){m.textContent=err.message;m.className='status err'}});
 render();
 (async()=>{
-  try{const me=await api('/api/me');S.canEdit=me.admin;S.assets=me.admin;S.ai=me.ai}catch(e){}
+  try{const me=await api('/api/me');S.canEdit=me.admin;S.assets=me.admin;S.ai=me.ai;const en=me.engines||{};for(const o of $('#engine').options){if(o.value==='saudi'&&!en.saudi)o.textContent='سعودي AI (المفتاح غير مضاف)';if(o.value==='claude'&&!en.claude)o.textContent='Claude (المفتاح غير مضاف)'}if(!en.saudi&&en.claude)$('#engine').value='claude'}catch(e){}
   await loadAll();
   setInterval(async()=>{if(document.hidden)return;try{const v=await api('/api/votes');S.counts=v.counts;S.mine=v.mine;if(location.hash!=='#studio')render()}catch(e){}},30000);
 })();

@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 10000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const AI_KEY = process.env.ANTHROPIC_API_KEY || '';
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-5-5';
+// محرك سعودي AI (Qwen مباشرة من Alibaba Cloud) — نفس مفتاح موقع سعودي AI
+const QWEN_KEY = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || '';
+const QWEN_BASE = (process.env.QWEN_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').replace(/\/+$/, '');
+const QWEN_MODEL = process.env.QWEN_MODEL || 'qwen3.7-plus';
 const SECRET = crypto.createHash('sha256').update('hikaya:' + (process.env.SESSION_SECRET || ADMIN_PASSWORD || 'dev')).digest();
 const MAX_VIDEO = 20 * 1024 * 1024;
 
@@ -88,7 +92,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (p === '/healthz') return send(res, 200, { ok: true });
 
-    if (p === '/api/me') return send(res, 200, { admin: isAdmin(req), ai: !!AI_KEY, db: !!pool });
+    if (p === '/api/me') return send(res, 200, { admin: isAdmin(req), ai: !!(AI_KEY || QWEN_KEY), engines: { saudi: !!QWEN_KEY, claude: !!AI_KEY }, db: !!pool });
 
     if (p === '/api/login' && req.method === 'POST') {
       if (limited('login:' + req.socket.remoteAddress, 8, 15 * 60e3)) return send(res, 429, { error: 'محاولات كثيرة' });
@@ -140,16 +144,29 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/ai' && req.method === 'POST') {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
-      if (!AI_KEY) return send(res, 503, { error: 'مفتاح الذكاء الاصطناعي غير مضاف في إعدادات Render' });
-      const { prompt } = await json(req);
+      const { prompt, engine } = await json(req);
+      const text = String(prompt).slice(0, 40000);
+      const useSaudi = engine === 'saudi' ? true : engine === 'claude' ? false : !!QWEN_KEY;
+      if (useSaudi) {
+        if (!QWEN_KEY) return send(res, 503, { error: 'مفتاح سعودي AI غير مضاف (QWEN_API_KEY) في إعدادات Render' });
+        const r = await fetch(QWEN_BASE + '/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + QWEN_KEY, 'content-type': 'application/json' },
+          body: JSON.stringify({ model: QWEN_MODEL, max_tokens: 8000, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: 'أنت سعودي AI. أجب بـ JSON صالح فقط.' }, { role: 'user', content: text }] })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) return send(res, 502, { error: d?.error?.message || 'خطأ من محرك سعودي AI' });
+        return send(res, 200, { text: d.choices?.[0]?.message?.content || '', engine: 'saudi' });
+      }
+      if (!AI_KEY) return send(res, 503, { error: 'مفتاح Claude غير مضاف (ANTHROPIC_API_KEY) في إعدادات Render' });
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': AI_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: AI_MODEL, max_tokens: 8000, messages: [{ role: 'user', content: String(prompt).slice(0, 40000) }] })
+        body: JSON.stringify({ model: AI_MODEL, max_tokens: 8000, messages: [{ role: 'user', content: text }] })
       });
       const d = await r.json();
       if (!r.ok) return send(res, 502, { error: d?.error?.message || 'خطأ من خدمة الذكاء الاصطناعي' });
-      return send(res, 200, { text: (d.content || []).map(c => c.text || '').join('') });
+      return send(res, 200, { text: (d.content || []).map(c => c.text || '').join(''), engine: 'claude' });
     }
 
     if (p === '/api/upload' && req.method === 'POST') {
