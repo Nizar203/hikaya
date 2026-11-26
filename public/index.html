@@ -111,6 +111,8 @@ video{width:100%;border-radius:12px;background:#000;max-height:520px}
       <label class="t">شكل الصورة</label><div class="chips" data-k="look"></div>
       <label class="t" for="engine">محرك الذكاء</label>
       <select id="engine"><option value="saudi">سعودي AI</option><option value="claude">Claude</option></select>
+      <label class="t" for="vres">جودة الفيديو</label>
+      <select id="vres"><option value="480p">480 — أرخص (نص السعر)</option><option value="720p" selected>720 — جودة أعلى</option></select>
       <label class="t" for="dialect">اللهجة</label>
       <select id="dialect"><option>سعودية</option><option>خليجية</option><option>مصرية</option><option>شامية</option><option>فصحى مبسطة</option></select>
       <label class="t" for="count">عدد الحلقات</label>
@@ -307,7 +309,7 @@ document.addEventListener('click',async e=>{
   }
   if(act==='listen')speakEp(s,ep,a);
   if(act==='genScene')genVideo(s,ep,+a.dataset.i);
-  if(act==='genAll'){for(let i=0;i<ep.scenes.length;i++){if(!ep.scenes[i].video&&!vbusy(s,ep,i)){genVideo(s,ep,i);await new Promise(r=>setTimeout(r,1500))}}}
+  if(act==='genAll'){for(let i=0;i<ep.scenes.length;i++){if(!ep.scenes[i].video&&!vbusy(s,ep,i)){const ok=await genVideo(s,ep,i);if(ok===false)break}}}
 });
 document.addEventListener('change',async e=>{
   const inp=e.target.closest('[data-act=upload]');if(!inp||!inp.files[0])return;
@@ -328,16 +330,16 @@ async function genVideo(s,ep,i,resumeJob){
   setV(s,ep,i,'جاري البدء…',true);
   let job=resumeJob;
   try{
-    if(!job){const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en})});job=d.job;sc.job=job;await save(s)}
+    if(!job){const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en,resolution:$('#vres').value})});job=d.job;sc.job=job;await save(s)}
     for(let k=0;k<60;k++){
       await new Promise(r=>setTimeout(r,15000));
       const st=await api('/api/video/status?job='+encodeURIComponent(job));
-      if(st.status==='completed'){sc.video=st.videoId;delete sc.job;S.open=ep.n;setV(s,ep,i,'',false);await save(s);return}
-      if(['failed','cancelled','expired'].includes(st.status)){delete sc.job;await save(s);setV(s,ep,i,'فشل التوليد: '+(st.error||st.status),false);return}
+      if(st.status==='completed'){sc.video=st.videoId;delete sc.job;S.open=ep.n;setV(s,ep,i,'',false);await save(s);return true}
+      if(['failed','cancelled','expired'].includes(st.status)){delete sc.job;await save(s);setV(s,ep,i,'فشل التوليد: '+(st.error||st.status),false);return false}
       setV(s,ep,i,'يتولد الفيديو'+(st.progress!=null?' '+st.progress+'%':'…'),true);
     }
     setV(s,ep,i,'طوّل التوليد، حدّث الصفحة بعد شوي',false);
-  }catch(err){setV(s,ep,i,'خطأ: '+(err.message||''),false)}
+  }catch(err){setV(s,ep,i,'خطأ: '+(err.message||''),false);return false}
 }
 async function speakEp(s,ep,btn){
   const sy=window.speechSynthesis;if(!sy){btn.textContent='الصوت غير متاح في هذا المتصفح';return}

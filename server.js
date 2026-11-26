@@ -168,7 +168,7 @@ const server = http.createServer(async (req, res) => {
           })
         });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) { console.error('saudi engine', r.status, JSON.stringify(d).slice(0, 500)); return send(res, 502, { error: d?.error?.message || 'خطأ من محرك سعودي AI' }); }
+        if (!r.ok) { console.error('saudi engine', r.status, JSON.stringify(d).slice(0, 500)); return send(res, 502, { error: r.status === 402 ? 'رصيد OpenRouter ما يكفي، اشحن الرصيد من openrouter.ai/settings/credits' : (d?.error?.message || 'خطأ من محرك سعودي AI') }); }
         const out = d.choices?.[0]?.message?.content || '';
         console.log('saudi engine ok', QWEN_MODEL, 'chars', out.length, 'finish', d.choices?.[0]?.finish_reason);
         if (!out.trim()) return send(res, 502, { error: 'محرك سعودي AI رجّع رد فاضي (' + (d.choices?.[0]?.finish_reason || d?.error?.message || 'بدون سبب') + ')، جرّب مرة ثانية' });
@@ -188,15 +188,16 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/video/start' && req.method === 'POST') {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
       if (!OR_KEY) return send(res, 503, { error: 'مفتاح OpenRouter غير مضاف (SAUDI_BUILD_KEY)' });
-      const { prompt } = await json(req);
+      const { prompt, resolution } = await json(req);
+      const res2 = ['480p', '720p', '1080p'].includes(resolution) ? resolution : VIDEO_RES;
       if (typeof prompt !== 'string' || prompt.length < 10) return send(res, 400, { error: 'أمر اللقطة فاضي، اكتب المشاهد أول' });
       const r = await fetch('https://openrouter.ai/api/v1/videos', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + OR_KEY, 'content-type': 'application/json', 'X-Title': 'Hikaya' },
-        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: VIDEO_SECS, resolution: VIDEO_RES, aspect_ratio: '9:16', generate_audio: true })
+        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: VIDEO_SECS, resolution: res2, aspect_ratio: '9:16', generate_audio: true })
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d.id) { console.error('video start', r.status, JSON.stringify(d).slice(0, 400)); return send(res, 502, { error: d?.error?.message || ('تعذر بدء الفيديو ' + r.status) }); }
+      if (!r.ok || !d.id) { console.error('video start', r.status, JSON.stringify(d).slice(0, 400)); return send(res, r.status === 402 ? 402 : 502, { error: r.status === 402 ? (d?.error?.metadata?.reason === 'in_flight_budget_exhausted' ? 'فيه فيديوهات قيد التوليد تحجز الرصيد، انتظر لين تخلص' : 'رصيد OpenRouter ما يكفي، اشحن الرصيد من openrouter.ai/settings/credits') : (d?.error?.message || ('تعذر بدء الفيديو ' + r.status)) }); }
       console.log('video start', d.id);
       return send(res, 200, { job: d.id, status: d.status || 'pending' });
     }
