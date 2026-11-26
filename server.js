@@ -156,11 +156,18 @@ const server = http.createServer(async (req, res) => {
         const r = await fetch(QWEN_BASE + '/chat/completions', {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + QWEN_KEY, 'content-type': 'application/json' },
-          body: JSON.stringify({ model: QWEN_MODEL, max_tokens: 8000, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: 'أنت سعودي AI. أجب بـ JSON صالح فقط.' }, { role: 'user', content: text }] })
+          body: JSON.stringify({
+            model: QWEN_MODEL, max_tokens: 16000,
+            messages: [{ role: 'system', content: 'أنت سعودي AI، كاتب مسلسلات. أجب بـ JSON صالح فقط بدون أي شرح أو علامات كود.' }, { role: 'user', content: text }],
+            ...(QWEN_DIRECT ? { enable_thinking: false } : { reasoning: { enabled: false, exclude: true } })
+          })
         });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) return send(res, 502, { error: d?.error?.message || 'خطأ من محرك سعودي AI' });
-        return send(res, 200, { text: d.choices?.[0]?.message?.content || '', engine: 'saudi' });
+        if (!r.ok) { console.error('saudi engine', r.status, JSON.stringify(d).slice(0, 500)); return send(res, 502, { error: d?.error?.message || 'خطأ من محرك سعودي AI' }); }
+        const out = d.choices?.[0]?.message?.content || '';
+        console.log('saudi engine ok', QWEN_MODEL, 'chars', out.length, 'finish', d.choices?.[0]?.finish_reason);
+        if (!out.trim()) return send(res, 502, { error: 'محرك سعودي AI رجّع رد فاضي (' + (d.choices?.[0]?.finish_reason || d?.error?.message || 'بدون سبب') + ')، جرّب مرة ثانية' });
+        return send(res, 200, { text: out, engine: 'saudi' });
       }
       if (!AI_KEY) return send(res, 503, { error: 'مفتاح Claude غير مضاف (ANTHROPIC_API_KEY) في إعدادات Render' });
       const r = await fetch('https://api.anthropic.com/v1/messages', {
