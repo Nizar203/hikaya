@@ -10,9 +10,11 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const AI_KEY = process.env.ANTHROPIC_API_KEY || '';
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-5-5';
 // محرك سعودي AI (Qwen مباشرة من Alibaba Cloud) — نفس مفتاح موقع سعودي AI
-const QWEN_KEY = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || '';
-const QWEN_BASE = (process.env.QWEN_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').replace(/\/+$/, '');
-const QWEN_MODEL = process.env.QWEN_MODEL || 'qwen3.7-plus';
+// محرك سعودي AI: نفس إعدادات موقع سعودي AI — إما Qwen مباشر (QWEN_API_KEY) أو SAUDI_BUILD_URL/KEY/MODEL (مثل OpenRouter)
+const QWEN_DIRECT = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY || '';
+const QWEN_KEY = QWEN_DIRECT || process.env.SAUDI_BUILD_KEY || '';
+const QWEN_BASE = (QWEN_DIRECT ? (process.env.QWEN_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1') : (process.env.SAUDI_BUILD_URL || 'https://openrouter.ai/api/v1')).replace(/\/+$/, '');
+const QWEN_MODEL = QWEN_DIRECT ? (process.env.QWEN_MODEL || 'qwen3.7-plus') : (process.env.SAUDI_BUILD_MODEL || 'qwen/qwen3.6-plus');
 const SECRET = crypto.createHash('sha256').update('hikaya:' + (process.env.SESSION_SECRET || ADMIN_PASSWORD || 'dev')).digest();
 const MAX_VIDEO = 20 * 1024 * 1024;
 
@@ -146,11 +148,11 @@ const server = http.createServer(async (req, res) => {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
       const { prompt, engine } = await json(req);
       const bad = k => k && /[^\x21-\x7e]/.test(k);
-      if (bad(QWEN_KEY) || bad(AI_KEY)) return send(res, 500, { error: 'المفتاح المحفوظ في Render فيه نقاط أو رموز مخفية (•) بدل المفتاح الحقيقي. انسخ المفتاح الأصلي من مصدره والصقه من جديد' + (bad(QWEN_KEY) ? ' في QWEN_API_KEY' : '') + (bad(AI_KEY) ? ' في ANTHROPIC_API_KEY' : '') });
+      if (bad(QWEN_KEY) || bad(AI_KEY)) return send(res, 500, { error: 'المفتاح المحفوظ في Render فيه نقاط أو رموز مخفية (•) بدل المفتاح الحقيقي. انسخ المفتاح الأصلي من مصدره والصقه من جديد' + (bad(QWEN_KEY) ? ' في مفتاح سعودي AI' : '') + (bad(AI_KEY) ? ' في ANTHROPIC_API_KEY' : '') });
       const text = String(prompt).slice(0, 40000);
       const useSaudi = engine === 'saudi' ? true : engine === 'claude' ? false : !!QWEN_KEY;
       if (useSaudi) {
-        if (!QWEN_KEY) return send(res, 503, { error: 'مفتاح سعودي AI غير مضاف (QWEN_API_KEY) في إعدادات Render' });
+        if (!QWEN_KEY) return send(res, 503, { error: 'مفتاح سعودي AI غير مضاف (SAUDI_BUILD_KEY أو QWEN_API_KEY) في إعدادات Render' });
         const r = await fetch(QWEN_BASE + '/chat/completions', {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + QWEN_KEY, 'content-type': 'application/json' },
