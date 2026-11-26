@@ -145,6 +145,8 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/ai' && req.method === 'POST') {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
       const { prompt, engine } = await json(req);
+      const bad = k => k && /[^\x21-\x7e]/.test(k);
+      if (bad(QWEN_KEY) || bad(AI_KEY)) return send(res, 500, { error: 'المفتاح المحفوظ في Render فيه نقاط أو رموز مخفية (•) بدل المفتاح الحقيقي. انسخ المفتاح الأصلي من مصدره والصقه من جديد' + (bad(QWEN_KEY) ? ' في QWEN_API_KEY' : '') + (bad(AI_KEY) ? ' في ANTHROPIC_API_KEY' : '') });
       const text = String(prompt).slice(0, 40000);
       const useSaudi = engine === 'saudi' ? true : engine === 'claude' ? false : !!QWEN_KEY;
       if (useSaudi) {
