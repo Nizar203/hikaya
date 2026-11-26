@@ -266,6 +266,7 @@ function epCard(s,ep){
    ${w?`<div class="note">الجمهور اختار للحلقة هذي: <b>${esc(w)}</b> (ينحسب تلقائياً عند الكتابة)</div>`:''}
    <div class="row">
     <button class="btn red" data-act="write">${ep.scenes.length?'أعد كتابة المشاهد':'اكتب المشاهد'}</button>
+    ${ep.scenes.length&&S.video?`<button class="btn red" data-act="genAll">ولّد فيديو الحلقة (${ep.scenes.filter(x=>!x.video).length} لقطات)</button>`:''}
     ${ep.scenes.length?`<button class="btn ghost" data-act="listen">اسمع الحوار</button><button class="copy" data-copy="${esc(all)}">نسخ كل أوامر الفيديو</button>`:''}
     <label class="btn ghost" ${S.assets?'':'hidden'}>ارفع فيديو الحلقة<input type="file" accept="video/*" data-act="upload" hidden></label>
     <button class="btn ${ep.published?'ghost':'lime'}" data-act="pubEp">${ep.published?'إلغاء النشر':'انشر الحلقة'}</button>
@@ -273,7 +274,11 @@ function epCard(s,ep){
    ${ep.video?`<video controls playsinline preload="metadata" src="/v/${esc(ep.video)}"></video>`:''}
    ${ep.scenes.map((sc,i)=>`<div class="scene"><h4>لقطة ${i+1} — ${esc(sc.place)}</h4><div class="note">${esc(sc.action)}</div>
      ${(sc.lines||[]).map(l=>`<p class="line"><b>${esc(l.who)}:</b> ${esc(l.text)}</p>`).join('')}
-     <div class="prompt">${esc(sc.prompt_en)}</div><button class="copy" data-copy="${esc(sc.prompt_en)}">نسخ أمر اللقطة</button></div>`).join('')}
+     <div class="prompt">${esc(sc.prompt_en)}</div>
+     <div class="row" style="margin-top:8px"><button class="copy" data-copy="${esc(sc.prompt_en)}">نسخ أمر اللقطة</button>
+     ${S.video?`<button class="btn ${sc.video?'ghost':'red'}" data-act="genScene" data-i="${i}" ${vbusy(s,ep,i)?'disabled':''}>${vbusy(s,ep,i)?esc(vstat(s,ep,i)):(sc.video?'أعد توليد الفيديو':'ولّد الفيديو')}</button>`:''}
+     ${!vbusy(s,ep,i)&&vstat(s,ep,i)?`<span class="note err">${esc(vstat(s,ep,i))}</span>`:''}</div>
+     ${sc.video?`<video controls playsinline preload="metadata" src="/v/${esc(sc.video)}" style="max-width:280px;aspect-ratio:9/16;margin-top:8px"></video>`:''}</div>`).join('')}
    ${ep.caption?`<div class="scene"><h4>وصف النشر</h4><p style="margin:0">${esc(ep.caption)}</p><p class="note">${ep.hashtags.map(h=>'#'+esc(String(h).replace(/^#/,''))).join(' ')}</p><button class="copy" data-copy="${esc(ep.caption+'\n'+ep.hashtags.map(h=>'#'+String(h).replace(/^#/,'')).join(' '))}">نسخ الوصف</button></div>`:''}
    ${ep.poll.q?`<div class="note">تصويت الجمهور: ${esc(ep.poll.q)} — ${tot} صوت${ep.poll.options.map((o,i)=>` · ${esc(o)}: ${c[i]||0}`).join('')}</div>`:''}
   </div></details>`;
@@ -301,6 +306,8 @@ document.addEventListener('click',async e=>{
     }catch(err){a.disabled=false;a.classList.remove('pulse');a.textContent='صار خطأ: '+(err.message||'جرّب مرة ثانية')}
   }
   if(act==='listen')speakEp(s,ep,a);
+  if(act==='genScene')genVideo(s,ep,+a.dataset.i);
+  if(act==='genAll'){for(let i=0;i<ep.scenes.length;i++){if(!ep.scenes[i].video&&!vbusy(s,ep,i)){genVideo(s,ep,i);await new Promise(r=>setTimeout(r,1500))}}}
 });
 document.addEventListener('change',async e=>{
   const inp=e.target.closest('[data-act=upload]');if(!inp||!inp.files[0])return;
@@ -311,6 +318,27 @@ document.addEventListener('change',async e=>{
   try{const r=await fetch('/api/upload',{method:'POST',credentials:'same-origin',headers:{'Content-Type':f.type||'video/mp4'},body:f});const d=await r.json();if(!r.ok)throw d;ep.video=d.id;S.open=ep.n;await save(s)}catch(err){lab.firstChild.textContent=(err&&err.error)||'تعذر الرفع'}
 });
 
+const VS={};
+const vkey=(s,ep,i)=>s.id+'_'+ep.n+'_'+i;
+const vstat=(s,ep,i)=>(VS[vkey(s,ep,i)]||{}).t||'';
+const vbusy=(s,ep,i)=>!!(VS[vkey(s,ep,i)]||{}).busy;
+function setV(s,ep,i,t,busy){VS[vkey(s,ep,i)]={t,busy};if(location.hash==='#studio')renderStudio()}
+async function genVideo(s,ep,i,resumeJob){
+  const sc=ep.scenes[i];if(!sc)return;
+  setV(s,ep,i,'جاري البدء…',true);
+  let job=resumeJob;
+  try{
+    if(!job){const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en})});job=d.job;sc.job=job;await save(s)}
+    for(let k=0;k<60;k++){
+      await new Promise(r=>setTimeout(r,15000));
+      const st=await api('/api/video/status?job='+encodeURIComponent(job));
+      if(st.status==='completed'){sc.video=st.videoId;delete sc.job;S.open=ep.n;setV(s,ep,i,'',false);await save(s);return}
+      if(['failed','cancelled','expired'].includes(st.status)){delete sc.job;await save(s);setV(s,ep,i,'فشل التوليد: '+(st.error||st.status),false);return}
+      setV(s,ep,i,'يتولد الفيديو'+(st.progress!=null?' '+st.progress+'%':'…'),true);
+    }
+    setV(s,ep,i,'طوّل التوليد، حدّث الصفحة بعد شوي',false);
+  }catch(err){setV(s,ep,i,'خطأ: '+(err.message||''),false)}
+}
 async function speakEp(s,ep,btn){
   const sy=window.speechSynthesis;if(!sy){btn.textContent='الصوت غير متاح في هذا المتصفح';return}
   if(btn.dataset.on){sy.cancel();delete btn.dataset.on;btn.textContent='اسمع الحوار';return}
@@ -354,7 +382,7 @@ function renderSite(){
         <div class="status" id="voteMsg"></div></div>`:''}
        <h3 style="margin-top:22px">الشخصيات</h3><p class="note">${s.characters.map(c=>esc(c.name)+(c.hero?' (البطل)':'')+' — '+esc(c.role)).join(' · ')}</p>
       </div>
-      <div class="phone"><div class="screen">${ep.video?`<video controls playsinline preload="metadata" src="/v/${esc(ep.video)}"></video>`:
+      <div class="phone"><div class="screen">${ep.video?`<video controls playsinline preload="metadata" src="/v/${esc(ep.video)}"></video>`:ep.scenes.some(x=>x.video)?`<video id="pv" controls playsinline preload="metadata" data-list="${esc(ep.scenes.filter(x=>x.video).map(x=>x.video).join(','))}" src="/v/${esc(ep.scenes.find(x=>x.video).video)}"></video>`:
         `<div class="story"><h3>الحلقة ${ep.n}</h3>${ep.scenes.length?ep.scenes.map(sc=>`<div class="sc"><b>${esc(sc.place)}</b><div>${esc(sc.action)}</div>${(sc.lines||[]).map(l=>`<div><b>${esc(l.who)}:</b> ${esc(l.text)}</div>`).join('')}</div>`).join(''):`<p>${esc(ep.summary)}</p>`}<p><b>وانتهت الحلقة على:</b> ${esc(ep.cliffhanger)}</p></div>`}
       </div></div></div>`;
     return;
@@ -368,6 +396,7 @@ function renderSite(){
    <div class="band">${pub.length?`<h2 style="margin-bottom:14px">كل المسلسلات</h2><div class="shows">${pub.map(s=>`<a class="show" href="#show-${esc(s.id)}">${poster(s)}<b>${esc(s.title)}</b><span class="note">${s.episodes.filter(e=>e.published).length} حلقات · ${esc(s.genre)}</span></a>`).join('')}</div>`:
    `<div class="empty"><h2>ما فيه مسلسلات منشورة</h2><p class="note">${S.canEdit?'روح للاستوديو واكتب أول مسلسل، ثم اضغط «انشر».':'تابعنا، أول مسلسل قريب.'}</p>${S.canEdit?'<a class="btn red" href="#studio">افتح الاستوديو</a>':''}</div>`}</div>`;
 }
+$('#site').addEventListener('ended',e=>{const v=e.target;if(v.id!=='pv')return;const l=v.dataset.list.split(','),k=l.indexOf(v.getAttribute('src').slice(3))+1;if(k>0&&k<l.length){v.src='/v/'+l[k];v.play().catch(()=>{})}},true);
 $('#site').addEventListener('click',async e=>{
   const b=e.target.closest('[data-ep]');if(b){S.siteEp=+b.dataset.ep;renderSite();return}
   const v=e.target.closest('[data-vote]');if(!v)return;
@@ -398,8 +427,9 @@ $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const m=$
   try{await api('/api/login',{method:'POST',body:JSON.stringify({password:$('#pw').value})});S.canEdit=true;S.assets=true;$('#pw').value='';await loadAll()}catch(err){m.textContent=err.message;m.className='status err'}});
 render();
 (async()=>{
-  try{const me=await api('/api/me');S.canEdit=me.admin;S.assets=me.admin;S.ai=me.ai;const en=me.engines||{};for(const o of $('#engine').options){if(o.value==='saudi'&&!en.saudi)o.textContent='سعودي AI (المفتاح غير مضاف)';if(o.value==='claude'&&!en.claude)o.textContent='Claude (المفتاح غير مضاف)'}if(!en.saudi&&en.claude)$('#engine').value='claude'}catch(e){}
+  try{const me=await api('/api/me');S.canEdit=me.admin;S.assets=me.admin;S.ai=me.ai;S.video=me.video;const en=me.engines||{};for(const o of $('#engine').options){if(o.value==='saudi'&&!en.saudi)o.textContent='سعودي AI (المفتاح غير مضاف)';if(o.value==='claude'&&!en.claude)o.textContent='Claude (المفتاح غير مضاف)'}if(!en.saudi&&en.claude)$('#engine').value='claude'}catch(e){}
   await loadAll();
+  if(S.canEdit&&S.video)for(const s of S.series)for(const ep of s.episodes||[])(ep.scenes||[]).forEach((sc,i)=>{if(sc.job&&!sc.video)genVideo(s,ep,i,sc.job)});
   setInterval(async()=>{if(document.hidden)return;try{const v=await api('/api/votes');S.counts=v.counts;S.mine=v.mine;if(location.hash!=='#studio')render()}catch(e){}},30000);
 })();
 }

@@ -17,6 +17,11 @@ const QWEN_BASE = (QWEN_DIRECT ? (process.env.QWEN_BASE_URL || 'https://dashscop
 const QWEN_MODEL = QWEN_DIRECT ? (process.env.QWEN_MODEL || 'qwen3.7-plus') : (process.env.SAUDI_BUILD_MODEL || 'qwen/qwen3.6-plus');
 const SECRET = crypto.createHash('sha256').update('hikaya:' + (process.env.SESSION_SECRET || ADMIN_PASSWORD || 'dev')).digest();
 const MAX_VIDEO = 20 * 1024 * 1024;
+// توليد الفيديو عبر OpenRouter (نفس مفتاح سعودي AI)
+const OR_KEY = process.env.OPENROUTER_API_KEY || (/openrouter\.ai/.test(process.env.SAUDI_BUILD_URL || 'https://openrouter.ai') ? process.env.SAUDI_BUILD_KEY || '' : '');
+const VIDEO_MODEL = process.env.VIDEO_MODEL || 'alibaba/wan-3.0';
+const VIDEO_RES = process.env.VIDEO_RESOLUTION || '720p';
+const VIDEO_SECS = Number(process.env.VIDEO_SECONDS || 8);
 
 const pool = process.env.DATABASE_URL
   ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false } })
@@ -94,7 +99,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (p === '/healthz') return send(res, 200, { ok: true });
 
-    if (p === '/api/me') return send(res, 200, { admin: isAdmin(req), ai: !!(AI_KEY || QWEN_KEY), engines: { saudi: !!QWEN_KEY, claude: !!AI_KEY }, db: !!pool });
+    if (p === '/api/me') return send(res, 200, { video: !!OR_KEY, admin: isAdmin(req), ai: !!(AI_KEY || QWEN_KEY), engines: { saudi: !!QWEN_KEY, claude: !!AI_KEY }, db: !!pool });
 
     if (p === '/api/login' && req.method === 'POST') {
       if (limited('login:' + req.socket.remoteAddress, 8, 15 * 60e3)) return send(res, 429, { error: 'محاولات كثيرة' });
@@ -178,6 +183,41 @@ const server = http.createServer(async (req, res) => {
       const d = await r.json();
       if (!r.ok) return send(res, 502, { error: d?.error?.message || 'خطأ من خدمة الذكاء الاصطناعي' });
       return send(res, 200, { text: (d.content || []).map(c => c.text || '').join(''), engine: 'claude' });
+    }
+
+    if (p === '/api/video/start' && req.method === 'POST') {
+      if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
+      if (!OR_KEY) return send(res, 503, { error: 'مفتاح OpenRouter غير مضاف (SAUDI_BUILD_KEY)' });
+      const { prompt } = await json(req);
+      if (typeof prompt !== 'string' || prompt.length < 10) return send(res, 400, { error: 'أمر اللقطة فاضي، اكتب المشاهد أول' });
+      const r = await fetch('https://openrouter.ai/api/v1/videos', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + OR_KEY, 'content-type': 'application/json', 'X-Title': 'Hikaya' },
+        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: VIDEO_SECS, resolution: VIDEO_RES, aspect_ratio: '9:16', generate_audio: true })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.id) { console.error('video start', r.status, JSON.stringify(d).slice(0, 400)); return send(res, 502, { error: d?.error?.message || ('تعذر بدء الفيديو ' + r.status) }); }
+      console.log('video start', d.id);
+      return send(res, 200, { job: d.id, status: d.status || 'pending' });
+    }
+    if (p === '/api/video/status' && req.method === 'GET') {
+      if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
+      const job = url.searchParams.get('job') || '';
+      if (!/^[\w-]{4,120}$/.test(job)) return send(res, 400, { error: 'رقم مهمة غير صالح' });
+      const r = await fetch('https://openrouter.ai/api/v1/videos/' + job, { headers: { Authorization: 'Bearer ' + OR_KEY } });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return send(res, 502, { error: d?.error?.message || ('تعذر متابعة الفيديو ' + r.status) });
+      if (d.status === 'completed') {
+        const c = await fetch('https://openrouter.ai/api/v1/videos/' + job + '/content?index=0', { headers: { Authorization: 'Bearer ' + OR_KEY } });
+        if (!c.ok) return send(res, 200, { status: 'in_progress', progress: 99 });
+        const buf = Buffer.from(await c.arrayBuffer());
+        const id = crypto.randomBytes(9).toString('hex');
+        await pool.query('INSERT INTO videos(id,type,data) VALUES($1,$2,$3)', [id, 'video/mp4', buf]);
+        console.log('video saved', job, id, buf.length, 'cost', d.usage?.cost);
+        return send(res, 200, { status: 'completed', videoId: id, cost: d.usage?.cost });
+      }
+      if (['failed', 'cancelled', 'expired'].includes(d.status)) return send(res, 200, { status: d.status, error: (d.error && (d.error.message || d.error)) || d.status });
+      return send(res, 200, { status: d.status || 'pending', progress: d.progress ?? null, detail: d.status_detail || '' });
     }
 
     if (p === '/api/upload' && req.method === 'POST') {
