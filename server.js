@@ -190,7 +190,9 @@ const server = http.createServer(async (req, res) => {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
       if (!OR_KEY) return send(res, 503, { error: 'مفتاح OpenRouter غير مضاف (SAUDI_BUILD_KEY)' });
       const { prompt, resolution, duration } = await json(req);
-      const secs = Number.isInteger(duration) && duration >= 2 && duration <= 30 ? duration : VIDEO_SECS;
+      // Veo يقبل فقط 4/6/8 ثواني للقطة؛ نماذج أخرى (wan) تقبل حتى 30
+      let secs = Number.isInteger(duration) && duration >= 2 && duration <= 30 ? duration : VIDEO_SECS;
+      if (/veo/i.test(VIDEO_MODEL)) secs = secs >= 8 ? 8 : secs >= 6 ? 6 : 4;
       const res2 = ['480p', '720p', '1080p'].includes(resolution) ? resolution : VIDEO_RES;
       if (typeof prompt !== 'string' || prompt.length < 10) return send(res, 400, { error: 'أمر اللقطة فاضي، اكتب المشاهد أول' });
       const r = await fetch('https://openrouter.ai/api/v1/videos', {
