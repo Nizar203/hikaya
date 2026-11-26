@@ -188,13 +188,14 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/video/start' && req.method === 'POST') {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
       if (!OR_KEY) return send(res, 503, { error: 'مفتاح OpenRouter غير مضاف (SAUDI_BUILD_KEY)' });
-      const { prompt, resolution } = await json(req);
+      const { prompt, resolution, duration } = await json(req);
+      const secs = Number.isInteger(duration) && duration >= 2 && duration <= 30 ? duration : VIDEO_SECS;
       const res2 = ['480p', '720p', '1080p'].includes(resolution) ? resolution : VIDEO_RES;
       if (typeof prompt !== 'string' || prompt.length < 10) return send(res, 400, { error: 'أمر اللقطة فاضي، اكتب المشاهد أول' });
       const r = await fetch('https://openrouter.ai/api/v1/videos', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + OR_KEY, 'content-type': 'application/json', 'X-Title': 'Hikaya' },
-        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: VIDEO_SECS, resolution: res2, aspect_ratio: '9:16', generate_audio: true })
+        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: secs, resolution: res2, aspect_ratio: '9:16', generate_audio: true })
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.id) { console.error('video start', r.status, JSON.stringify(d).slice(0, 400)); return send(res, r.status === 402 ? 402 : 502, { error: r.status === 402 ? (d?.error?.metadata?.reason === 'in_flight_budget_exhausted' ? 'فيه فيديوهات قيد التوليد تحجز الرصيد، انتظر لين تخلص' : 'رصيد OpenRouter ما يكفي، اشحن الرصيد من openrouter.ai/settings/credits') : (d?.error?.message || ('تعذر بدء الفيديو ' + r.status)) }); }

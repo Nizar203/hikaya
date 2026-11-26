@@ -111,6 +111,9 @@ video{width:100%;border-radius:12px;background:#000;max-height:520px}
       <label class="t">شكل الصورة</label><div class="chips" data-k="look"></div>
       <label class="t" for="engine">محرك الذكاء</label>
       <select id="engine"><option value="saudi">سعودي AI</option><option value="claude">Claude</option></select>
+      <label class="t" for="elen">طول الحلقة</label>
+      <select id="elen"><option value="6x8">قصيرة — دقيقة تقريباً (6 لقطات × 8 ثواني)</option><option value="8x12" selected>متوسطة — دقيقة ونص (8 لقطات × 12 ثانية)</option><option value="10x18">طويلة — 3 دقائق (10 لقطات × 18 ثانية)</option></select>
+      <p class="note" style="margin:6px 0 0">يطبَّق عند «اكتب المشاهد». الأطول يكلّف أكثر في توليد الفيديو.</p>
       <label class="t" for="vres">جودة الفيديو</label>
       <select id="vres"><option value="480p">480 — أرخص (نص السعر)</option><option value="720p" selected>720 — جودة أعلى</option></select>
       <label class="t" for="dialect">اللهجة</label>
@@ -189,7 +192,8 @@ function biblePrompt(){
 "episodes":[{"n":1,"title":"عنوان","summary":"ملخص 2-3 جمل","cliffhanger":"النهاية المشوقة","poll":{"q":"سؤال للجمهور عن الحلقة الجاية","options":["خيار","خيار","خيار"]}}]}
 من 3 إلى 6 شخصيات، و${n} حلقات بالضبط.`;
 }
-function epPrompt(s,ep,winner){
+function epLen(){const [n,secs]=$('#elen').value.split('x').map(Number);return{n,secs}}
+function epPrompt(s,ep,winner,len=epLen()){
   const prev=s.episodes.filter(e=>e.n<ep.n).map(e=>`الحلقة ${e.n}: ${e.summary} — النهاية: ${e.cliffhanger}`).join('\n');
   return `أنت كاتب سيناريو لمسلسل قصير عمودي للجوال.
 المسلسل: ${s.title} — ${s.logline}
@@ -202,7 +206,7 @@ ${winner?'الجمهور صوّت أن يحدث في هذه الحلقة: '+winn
 البطل الرئيسي: ${(s.characters.find(c=>c.hero)||s.characters[0]).name} — يظهر شجاعاً وذكياً، ولا يُهزم نهائياً أبداً.
 ${ep.n===s.episodes.length?'هذه الحلقة الأخيرة: البطل ينتصر انتصاراً واضحاً ومُرضياً على الخصم في آخر لقطتين، مع لحظة احتفال.':'البطل قد يتعثر في هذه الحلقة لكنه يبقى صامداً، وتنتهي الحلقة بتشويق.'}
 اكتب الحلقة ${ep.n} "${ep.title}": ${ep.summary}، وتنتهي بـ: ${ep.cliffhanger}
-قسّمها إلى 5 إلى 7 لقطات، كل لقطة 6-10 ثوان تصلح لتوليدها بأداة فيديو ذكاء اصطناعي.
+قسّمها إلى ${len.n} لقطات بالضبط، كل لقطة مدتها ${len.secs} ثانية، فيها حوار كافٍ يملأ مدتها (حوالي ${Math.max(1,Math.round(len.secs/4))} جمل) وحركة واضحة، وتصلح لتوليدها بأداة فيديو ذكاء اصطناعي.
 أعد JSON فقط:
 {"scenes":[{"place":"المكان بالعربي","action":"ماذا يحدث بالعربي","lines":[{"who":"اسم الشخصية","text":"الحوار باللهجة"}],
 "prompt_en":"Complete English prompt for an AI video generator: vertical 9:16, the style, the FULL look description of every character in the shot (copy it, do not shorten), setting, action, camera move, lighting, mood. End with: Dialogue in Arabic: <the lines>"}],
@@ -301,8 +305,10 @@ document.addEventListener('click',async e=>{
   if(act==='write'){
     a.disabled=true;a.textContent='جاري الكتابة…';a.classList.add('pulse');
     try{
-      const v=await ask(epPrompt(s,ep,ep.n>1?winnerOf(s,ep.n-1):''));
-      ep.scenes=(v.scenes||[]).slice(0,8).map(x=>({place:String(x.place||''),action:String(x.action||''),prompt_en:String(x.prompt_en||''),lines:(x.lines||[]).map(l=>({who:String(l.who||''),text:String(l.text||'')}))}));
+      const len=epLen();
+      const v=await ask(epPrompt(s,ep,ep.n>1?winnerOf(s,ep.n-1):'',len));
+      ep.clipSecs=len.secs;
+      ep.scenes=(v.scenes||[]).slice(0,12).map(x=>({place:String(x.place||''),action:String(x.action||''),prompt_en:String(x.prompt_en||''),lines:(x.lines||[]).map(l=>({who:String(l.who||''),text:String(l.text||'')}))}));
       ep.caption=String(v.caption||'');ep.hashtags=(v.hashtags||[]).slice(0,10).map(String);
       await save(s);
     }catch(err){a.disabled=false;a.classList.remove('pulse');a.textContent='صار خطأ: '+(err.message||'جرّب مرة ثانية')}
@@ -330,7 +336,7 @@ async function genVideo(s,ep,i,resumeJob){
   setV(s,ep,i,'جاري البدء…',true);
   let job=resumeJob;
   try{
-    if(!job){const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en,resolution:$('#vres').value})});job=d.job;sc.job=job;await save(s)}
+    if(!job){const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en,resolution:$('#vres').value,duration:ep.clipSecs||8})});job=d.job;sc.job=job;await save(s)}
     for(let k=0;k<60;k++){
       await new Promise(r=>setTimeout(r,15000));
       const st=await api('/api/video/status?job='+encodeURIComponent(job));
