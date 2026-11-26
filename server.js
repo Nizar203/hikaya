@@ -19,8 +19,9 @@ const SECRET = crypto.createHash('sha256').update('hikaya:' + (process.env.SESSI
 const MAX_VIDEO = 20 * 1024 * 1024;
 // توليد الفيديو عبر OpenRouter (نفس مفتاح سعودي AI)
 const OR_KEY = process.env.OPENROUTER_API_KEY || (/openrouter\.ai/.test(process.env.SAUDI_BUILD_URL || 'https://openrouter.ai') ? process.env.SAUDI_BUILD_KEY || '' : '');
-const VIDEO_MODEL = process.env.VIDEO_MODEL || 'alibaba/wan-3.0';
-const VIDEO_RES = process.env.VIDEO_RESOLUTION || '720p';
+// أفضل جودة وبشر واقعيين: Veo 3.1 Fast (جودة Veo بتكلفة أقل ~0.12$/ث). للجودة القصوى: VIDEO_MODEL=google/veo-3.1
+const VIDEO_MODEL = process.env.VIDEO_MODEL || 'google/veo-3.1-fast';
+const VIDEO_RES = process.env.VIDEO_RESOLUTION || '1080p';
 const VIDEO_SECS = Number(process.env.VIDEO_SECONDS || 8);
 
 const pool = process.env.DATABASE_URL
