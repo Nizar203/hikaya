@@ -1,0 +1,10 @@
+{
+  "name": "hikaya",
+  "version": "1.0.0",
+  "private": true,
+  "description": "استوديو حكايا — مسلسلات قصيرة بالذكاء الاصطناعي",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "pg": "^8.13.1" }
+}

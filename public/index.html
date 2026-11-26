@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>استوديو حكايا</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: لعوب وسريع مثل ترند المسلسلات القصيرة، لكن مرتب كمنتج حقيقي
+   IDEA: لوحة تصوير عمودية + شاشة جوال تعرض الحلقة
+   PICTURE: شاشة جوال 9:16 فيها الحلقة، والاستوديو نفسه أداة العمل
+   COLOUR and TYPE: أحمر طماطم مسيطر، ليموني حاد، حبر غامق؛ Lalezar للعناوين وPlex Arabic للنص
+   LAYOUT: شريط علوي، الأداة أعلى الصفحة، أعمدة تنطوي تحت 600px */
+:root{color-scheme:light dark;
+--bg:light-dark(#fffdf9,#160d0e);--ink:light-dark(#1b1311,#f6ece8);--mut:light-dark(#6d5f5a,#b9a7a2);
+--red:light-dark(#d62839,#e8434f);--lime:#c6f432;--card:light-dark(#ffffff,#22161700);--line:light-dark(#eadfda,#3a2a2b);
+--panel:light-dark(#fff4f1,#241617)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Lalezar,"IBM Plex Sans Arabic",sans-serif;font-weight:400;line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:clamp(34px,6vw,52px)}h2{font-size:clamp(26px,4vw,34px)}h3{font-size:21px}
+.top{position:sticky;top:0;z-index:5;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px max(4vw,14px);background:var(--red);color:#fff}
+.brand{font-family:Lalezar,sans-serif;font-size:28px;display:flex;gap:10px;align-items:center}
+.brand i{display:inline-block;width:18px;height:30px;border:3px solid #fff;border-radius:5px;position:relative}
+.brand i:after{content:"";position:absolute;inset:7px 4px;background:var(--lime);border-radius:2px}
+nav{display:flex;gap:6px}
+nav a{color:#fff;text-decoration:none;padding:9px 16px;border-radius:99px;font-weight:700;min-height:44px;display:flex;align-items:center}
+nav a.on{background:#fff;color:var(--red)}
+.band{padding:clamp(22px,4vw,56px) max(5vw,16px);max-width:1280px;margin:auto}
+.hide{display:none!important}
+.grid2{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}
+label.t{display:block;font-weight:700;margin:16px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:9px 15px;font:inherit;cursor:pointer;min-height:44px}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+select,textarea,input[type=text],input[type=number]{width:100%;font:inherit;font-size:16px;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+textarea{min-height:84px;resize:vertical}
+button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:11px 18px;min-height:44px;cursor:pointer;background:var(--ink);color:var(--bg);display:inline-flex;align-items:center;gap:8px}
+.btn.red{background:var(--red);color:#fff}.btn.lime{background:var(--lime);color:#1b1311}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn[disabled]{opacity:.55;cursor:wait}
+.big{width:100%;justify-content:center;font-size:18px;margin-top:20px;padding:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.note{font-size:13.5px;color:var(--mut)}
+.status{margin-top:12px;font-size:14px;color:var(--mut);min-height:1.4em}
+.err{color:var(--red)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
+.tabs .chip{flex:none}
+.bible{display:grid;gap:18px}
+.cast{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.char{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--bg)}
+.char b{font-size:18px}.char .role{color:var(--red);font-weight:700;font-size:14px}
+.look{font-size:13px;color:var(--mut);direction:ltr;text-align:left;margin-top:8px;max-height:6.4em;overflow:auto}
+.ep{border:1px solid var(--line);border-radius:16px;background:var(--bg);overflow:hidden}
+.ep>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;gap:12px;align-items:center}
+.ep>summary::-webkit-details-marker{display:none}
+.num{flex:none;width:44px;height:44px;border-radius:12px;background:var(--red);color:#fff;font-family:Lalezar;font-size:22px;display:grid;place-items:center}
+.pub{font-size:12px;font-weight:700;background:var(--lime);color:#1b1311;border-radius:99px;padding:2px 10px;flex:none}
+.epbody{padding:0 16px 16px;display:grid;gap:12px}
+.cliff{border-inline-start:4px solid var(--red);padding:6px 12px;background:var(--panel);border-radius:6px}
+.scene{border:1px dashed var(--line);border-radius:12px;padding:12px}
+.scene h4{margin:0 0 6px;font-size:15px}
+.line{margin:3px 0}.line b{color:var(--red)}
+.prompt{direction:ltr;text-align:left;font-size:13px;background:var(--panel);border-radius:10px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:8px}
+.copy{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;min-height:36px}
+video{width:100%;border-radius:12px;background:#000;max-height:520px}
+/* site */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,330px);gap:36px;align-items:center}
+@media(max-width:760px){.hero{grid-template-columns:minmax(0,1fr)}}
+.phone{aspect-ratio:9/16;max-width:330px;width:100%;margin:auto;border-radius:38px;background:#0d0909;padding:12px;box-shadow:0 30px 60px -20px rgba(120,20,30,.45),inset 0 0 0 2px #3a2a2b}
+.screen{width:100%;height:100%;border-radius:28px;overflow:hidden;position:relative;background:var(--red);color:#fff;display:flex;flex-direction:column}
+.screen video{height:100%;max-height:none;border-radius:0;object-fit:cover}
+.story{padding:22px 18px;overflow:auto;flex:1;font-size:15px}
+.story .sc{background:rgba(0,0,0,.18);border-radius:12px;padding:10px;margin:8px 0}
+.shows{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.show{cursor:pointer;border:0;padding:0;background:none;color:inherit;font:inherit;text-align:start}
+.poster{aspect-ratio:3/4;border-radius:16px;overflow:hidden;display:block;width:100%}
+.show b{display:block;margin-top:8px;font-size:17px}
+.poll{border:2px solid var(--ink);border-radius:16px;padding:16px}
+.opt{display:block;width:100%;text-align:start;font:inherit;margin-top:8px;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg);color:var(--ink);cursor:pointer;position:relative;overflow:hidden;min-height:44px}
+.opt span.bar{position:absolute;inset-block:0;inset-inline-start:0;background:color-mix(in srgb,var(--lime) 55%,transparent);z-index:0}
+.opt span.tx{position:relative;z-index:1;display:flex;justify-content:space-between;gap:10px}
+.opt.mine{border-color:var(--ink);font-weight:700}
+.eplist{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+.eplist .chip{flex:none;scroll-snap-align:start}
+.empty{text-align:center;padding:50px 16px;border:2px dashed var(--line);border-radius:20px}
+@media(prefers-reduced-motion:no-preference){.pulse{animation:p 1.4s ease-in-out infinite}@keyframes p{50%{opacity:.45}}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><i></i>حكايا</div>
+  <nav id="nav"><a href="#site" id="nSite">المسلسلات</a><a href="#studio" id="nStudio" class="hide">الاستوديو</a></nav>
+</header>
+
+<main id="site"></main>
+
+<main id="login" class="hide"><div class="band" style="max-width:440px"><form class="panel" id="loginForm"><h2>دخول الاستوديو</h2><label class="t" for="pw">كلمة السر</label><input type="password" id="pw" autocomplete="current-password" style="width:100%;font:inherit;font-size:16px;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)"><button class="btn red big" type="submit">دخول</button><div class="status" id="loginMsg"></div></form></div></main>
+<main id="studio" class="hide">
+  <div class="band grid2">
+    <form class="panel" id="gen">
+      <h2>مسلسل جديد</h2>
+      <p class="note">اختر الأبطال والقصة، والذكاء الاصطناعي يكتب لك المسلسل كاملاً.</p>
+      <label class="t">الأبطال</label><div class="chips" data-k="heroes"></div>
+      <label class="t">نوع القصة</label><div class="chips" data-k="genre"></div>
+      <label class="t">شكل الصورة</label><div class="chips" data-k="look"></div>
+      <label class="t" for="dialect">اللهجة</label>
+      <select id="dialect"><option>سعودية</option><option>خليجية</option><option>مصرية</option><option>شامية</option><option>فصحى مبسطة</option></select>
+      <label class="t" for="count">عدد الحلقات</label>
+      <input type="number" id="count" min="3" max="10" value="6">
+      <label class="t" for="hero">البطل (اختياري)</label>
+      <input type="text" id="hero" placeholder="مثال: برتقالة شجاعة اسمها سنا">
+      <p class="note" style="margin:6px 0 0">البطل ينتصر دائماً في آخر حلقة.</p>
+      <label class="t" for="idea">فكرتك (اختياري)</label>
+      <textarea id="idea" placeholder="مثال: فراولة تكتشف إن خطيبها الموز يخونها مع الكيوي في حفلة الزواج"></textarea>
+      <button class="btn red big" id="goBtn" type="submit">اكتب المسلسل</button>
+      <div class="status" id="genStatus"></div>
+    </form>
+    <section>
+      <div class="tabs" id="myTabs"></div>
+      <div id="work"></div>
+    </section>
+  </div>
+</main>
+<footer class="band note" style="text-align:center"><a href="#studio" style="color:inherit">دخول الاستوديو</a></footer>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const OPTS={
+  heroes:['فواكه','قطط','حيوانات','خضار','بشر','حشرات'],
+  genre:['مغامرة','خيانة ودراما','برنامج مواعدة','كوميديا','رعب وغموض','أكشن','دراما عائلية'],
+  look:['3D كرتوني لامع','واقعي سينمائي','أنمي']
+};
+const LOOK_EN={'3D كرتوني لامع':'glossy 3D animated, Pixar-like, soft cinematic lighting, vibrant colors','واقعي سينمائي':'photorealistic cinematic, shallow depth of field, film grain, dramatic lighting','أنمي':'high quality anime style, cel shading, expressive faces'};
+const VOICES=['buttery','airy','glassy','rounded'];
+const pick={heroes:'فواكه',genre:'مغامرة',look:'3D كرتوني لامع'};
+const S={series:[],counts:{},mine:{},me:null,canEdit:false,cur:null,db:null,sample:null,tts:null,assets:null,dbOk:false};
+
+for(const box of document.querySelectorAll('.chips[data-k]')){
+  const k=box.dataset.k;
+  box.innerHTML=OPTS[k].map(o=>`<button type="button" class="chip" aria-pressed="${o===pick[k]}" data-v="${esc(o)}">${esc(o)}</button>`).join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;pick[k]=b.dataset.v;for(const c of box.children)c.setAttribute('aria-pressed',c===b)});
+}
+
+/* ---------- storage ---------- */
+async function api(u,o={}){const r=await fetch(u,{credentials:'same-origin',...o,headers:{'Content-Type':'application/json',...(o.headers||{})}});let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw{message:d.error||('خطأ '+r.status),status:r.status};return d}
+async function save(s){
+  s.updated=Date.now();
+  const i=S.series.findIndex(x=>x.id===s.id);if(i<0)S.series.unshift(s);else S.series[i]=s;
+  try{await api('/api/series/'+s.id,{method:'PUT',body:JSON.stringify(s)})}catch(e){toast('تعذر الحفظ: '+e.message,true)}
+  render();
+}
+const newId=()=>'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function toast(m,bad){const el=$('#genStatus');el.textContent=m;el.className='status'+(bad?' err':'')}
+
+/* ---------- AI ---------- */
+async function ask(prompt){
+  const r=await api('/api/ai',{method:'POST',body:JSON.stringify({prompt})});
+  try{return JSON.parse(r.text.replace(/^[^{]*/,'').replace(/[^}]*$/,''))}catch(_){throw{message:'الرد ما كان بالشكل المطلوب، جرّب مرة ثانية'}}
+}
+function biblePrompt(){
+  const n=Math.min(10,Math.max(3,+$('#count').value||6));
+  return `أنت كاتب محترف لمسلسلات قصيرة عمودية تنتشر على تيك توك وريلز (حلقة 1-3 دقائق، أحداث سريعة، نهاية مشوقة في كل حلقة تجعل المشاهد ينتظر الحلقة التالية).
+اكتب مسلسلاً جديداً بالمواصفات:
+- الأبطال: ${pick.heroes} بشكل وتصرفات بشرية
+- النوع: ${pick.genre}
+- اللهجة: ${$('#dialect').value}
+- عدد الحلقات: ${n}
+- فكرة المستخدم: ${$('#idea').value.trim()||'اقترح أنت فكرة جذابة'}
+- البطل: ${$('#hero').value.trim()||'اخترع بطلاً محبوباً وشجاعاً'}
+قواعد البطل (إلزامية):
+- شخصية واحدة فقط هي البطل الرئيسي، وتضع لها "hero":true وللباقين false.
+- البطل يواجه خصماً وتحديات تصعب من حلقة لحلقة، وقد يخسر جولات في الطريق، لكنه لا يُهزم نهائياً أبداً.
+- الحلقة الأخيرة ينتصر فيها البطل انتصاراً واضحاً ومُرضياً على الخصم، وتكون نهايتها انتصار لا تشويق، و"poll" فيها يسأل الجمهور عن مغامرة البطل القادمة.
+المحتوى مناسب للعائلة: لا مشاهد جنسية ولا عنف دموي.
+أعد JSON فقط بهذا الشكل بالضبط:
+{"title":"اسم المسلسل","logline":"جملة تشويقية","style_en":"English visual style for every shot, based on: ${LOOK_EN[pick.look]}, vertical 9:16",
+"characters":[{"name":"اسم","role":"دوره في القصة","personality":"طباعه","look_en":"VERY detailed fixed English visual description (species/fruit, colors, clothes, accessories, face) so the character looks identical in every clip","voice":"one of buttery|airy|glassy|rounded","hero":false}],
+"episodes":[{"n":1,"title":"عنوان","summary":"ملخص 2-3 جمل","cliffhanger":"النهاية المشوقة","poll":{"q":"سؤال للجمهور عن الحلقة الجاية","options":["خيار","خيار","خيار"]}}]}
+من 3 إلى 6 شخصيات، و${n} حلقات بالضبط.`;
+}
+function epPrompt(s,ep,winner){
+  const prev=s.episodes.filter(e=>e.n<ep.n).map(e=>`الحلقة ${e.n}: ${e.summary} — النهاية: ${e.cliffhanger}`).join('\n');
+  return `أنت كاتب سيناريو لمسلسل قصير عمودي للجوال.
+المسلسل: ${s.title} — ${s.logline}
+اللهجة: ${s.dialect}
+أسلوب الصورة: ${s.style_en}
+الشخصيات:
+${s.characters.map(c=>`- ${c.name} (${c.role}، ${c.personality}) LOOK: ${c.look_en}`).join('\n')}
+${prev?'ما حدث سابقاً:\n'+prev:''}
+${winner?'الجمهور صوّت أن يحدث في هذه الحلقة: '+winner+' — اجعله يحدث.':''}
+البطل الرئيسي: ${(s.characters.find(c=>c.hero)||s.characters[0]).name} — يظهر شجاعاً وذكياً، ولا يُهزم نهائياً أبداً.
+${ep.n===s.episodes.length?'هذه الحلقة الأخيرة: البطل ينتصر انتصاراً واضحاً ومُرضياً على الخصم في آخر لقطتين، مع لحظة احتفال.':'البطل قد يتعثر في هذه الحلقة لكنه يبقى صامداً، وتنتهي الحلقة بتشويق.'}
+اكتب الحلقة ${ep.n} "${ep.title}": ${ep.summary}، وتنتهي بـ: ${ep.cliffhanger}
+قسّمها إلى 5 إلى 7 لقطات، كل لقطة 6-10 ثوان تصلح لتوليدها بأداة فيديو ذكاء اصطناعي.
+أعد JSON فقط:
+{"scenes":[{"place":"المكان بالعربي","action":"ماذا يحدث بالعربي","lines":[{"who":"اسم الشخصية","text":"الحوار باللهجة"}],
+"prompt_en":"Complete English prompt for an AI video generator: vertical 9:16, the style, the FULL look description of every character in the shot (copy it, do not shorten), setting, action, camera move, lighting, mood. End with: Dialogue in Arabic: <the lines>"}],
+"caption":"وصف للنشر على تيك توك بالعربي مع سؤال يحفز التعليقات","hashtags":["هاشتاق","..."]}`;
+}
+
+$('#gen').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const b=$('#goBtn');b.disabled=true;b.textContent='جاري الكتابة…';toast('الذكاء الاصطناعي يكتب الشخصيات والحلقات، قد يأخذ دقيقة','');
+  try{
+    const v=await ask(biblePrompt());
+    if(!v||!Array.isArray(v.characters)||!Array.isArray(v.episodes))throw{message:'الرد غير مكتمل، جرّب مرة ثانية'};
+    const s={id:newId(),title:String(v.title||'بلا عنوان'),logline:String(v.logline||''),style_en:String(v.style_en||LOOK_EN[pick.look]),
+      heroes:pick.heroes,genre:pick.genre,dialect:$('#dialect').value,published:false,created:Date.now(),
+      characters:v.characters.slice(0,6).map((c,i)=>({name:String(c.name||''),role:String(c.role||''),personality:String(c.personality||''),look_en:String(c.look_en||''),voice:VOICES.includes(c.voice)?c.voice:VOICES[i%4],hero:c.hero===true})),
+      episodes:v.episodes.slice(0,10).map((x,i)=>({n:i+1,title:String(x.title||''),summary:String(x.summary||''),cliffhanger:String(x.cliffhanger||''),
+        poll:{q:String(x.poll?.q||''),options:(x.poll?.options||[]).slice(0,4).map(String)},scenes:[],caption:'',hashtags:[],video:null,published:false}))};
+    S.cur=s.id;await save(s);toast('تم! اكتب مشاهد كل حلقة من القائمة','');
+  }catch(err){toast('صار خطأ: '+(err.message||''),true)}
+  b.disabled=false;b.textContent='اكتب المسلسل';
+});
+
+function tally(sid,n){
+  return S.counts[sid+'__'+n]||{};
+}
+function winnerOf(s,n){
+  const ep=s.episodes.find(e=>e.n===n);if(!ep||!ep.poll.options.length)return'';
+  const c=tally(s.id,n);let best=-1,bi=-1;for(const k in c)if(c[k]>best){best=c[k];bi=+k}
+  return bi>=0?ep.poll.options[bi]:'';
+}
+
+/* ---------- studio render ---------- */
+function renderStudio(){
+  const mine=S.series;
+  $('#myTabs').innerHTML=mine.map(s=>`<button class="chip" aria-pressed="${s.id===S.cur}" data-id="${esc(s.id)}">${esc(s.title)}</button>`).join('');
+  const s=mine.find(x=>x.id===S.cur)||mine[0];
+  if(!s){$('#work').innerHTML=`<div class="empty"><h2>ما عندك مسلسلات بعد</h2><p class="note">اختر الأبطال ونوع القصة واضغط «اكتب المسلسل».</p>${S.ai?'':'<p class="note err">مفتاح الذكاء الاصطناعي غير مضاف بعد في إعدادات Render.</p>'}</div>`;return}
+  S.cur=s.id;
+  const pubCount=s.episodes.filter(e=>e.published).length;
+  $('#work').innerHTML=`<div class="bible">
+   <div class="panel">
+    <div class="row" style="justify-content:space-between"><h1>${esc(s.title)}</h1>
+     <div class="row"><button class="btn ${s.published?'ghost':'lime'}" data-act="pubShow">${s.published?'إخفاء من الموقع':'انشر المسلسل في الموقع'}</button>
+     <button class="btn ghost" data-act="del">حذف</button></div></div>
+    <p>${esc(s.logline)}</p>
+    <p class="note">${esc(s.heroes)} · ${esc(s.genre)} · لهجة ${esc(s.dialect)} · ${s.episodes.length} حلقات · المنشور ${pubCount}</p>
+    <div class="row"><span class="note">أسلوب الصورة لكل اللقطات:</span><button class="copy" data-copy="${esc(s.style_en)}">نسخ</button></div>
+    <div class="prompt">${esc(s.style_en)}</div>
+   </div>
+   <div><h2>الشخصيات</h2><p class="note">انسخ وصف كل شخصية وولّد لها صورة مرجعية أولاً، عشان يبقى شكلها ثابت في كل الحلقات.</p>
+   <div class="cast">${s.characters.map(c=>`<div class="char"${c.hero?' style="border:2px solid var(--red)"':''}><b>${esc(c.name)}</b>${c.hero?' <span class="pub">البطل</span>':''}<div class="role">${esc(c.role)}</div><div class="note">${esc(c.personality)}</div><div class="look">${esc(c.look_en)}</div><button class="copy" data-copy="${esc(c.look_en+', '+s.style_en+', character reference sheet, front and side view')}">نسخ أمر صورة الشخصية</button></div>`).join('')}</div></div>
+   <div><h2>الحلقات</h2><div style="display:grid;gap:10px;margin-top:10px">${s.episodes.map(ep=>epCard(s,ep)).join('')}</div></div>
+  </div>`;
+}
+function epCard(s,ep){
+  const w=ep.n>1?winnerOf(s,ep.n-1):'';
+  const c=tally(s.id,ep.n),tot=Object.values(c).reduce((a,b)=>a+b,0);
+  const all=ep.scenes.map((sc,i)=>`Shot ${i+1}:\n${sc.prompt_en}`).join('\n\n');
+  return `<details class="ep" data-n="${ep.n}" ${ep.n===S.open?'open':''}><summary><span class="num">${ep.n}</span><span style="flex:1"><h3>${esc(ep.title)}</h3><span class="note">${ep.scenes.length?ep.scenes.length+' لقطات':'لم تُكتب المشاهد'}${ep.video?' · فيه فيديو':''}</span></span>${ep.published?'<span class="pub">منشورة</span>':''}</summary>
+  <div class="epbody">
+   <p style="margin:0">${esc(ep.summary)}</p>
+   <div class="cliff"><b>${ep.n===s.episodes.length?'النهاية:':'النهاية المشوقة:'}</b> ${esc(ep.cliffhanger)}</div>
+   ${w?`<div class="note">الجمهور اختار للحلقة هذي: <b>${esc(w)}</b> (ينحسب تلقائياً عند الكتابة)</div>`:''}
+   <div class="row">
+    <button class="btn red" data-act="write">${ep.scenes.length?'أعد كتابة المشاهد':'اكتب المشاهد'}</button>
+    ${ep.scenes.length?`<button class="btn ghost" data-act="listen">اسمع الحوار</button><button class="copy" data-copy="${esc(all)}">نسخ كل أوامر الفيديو</button>`:''}
+    <label class="btn ghost" ${S.assets?'':'hidden'}>ارفع فيديو الحلقة<input type="file" accept="video/*" data-act="upload" hidden></label>
+    <button class="btn ${ep.published?'ghost':'lime'}" data-act="pubEp">${ep.published?'إلغاء النشر':'انشر الحلقة'}</button>
+   </div>
+   ${ep.video?`<video controls playsinline preload="metadata" src="/v/${esc(ep.video)}"></video>`:''}
+   ${ep.scenes.map((sc,i)=>`<div class="scene"><h4>لقطة ${i+1} — ${esc(sc.place)}</h4><div class="note">${esc(sc.action)}</div>
+     ${(sc.lines||[]).map(l=>`<p class="line"><b>${esc(l.who)}:</b> ${esc(l.text)}</p>`).join('')}
+     <div class="prompt">${esc(sc.prompt_en)}</div><button class="copy" data-copy="${esc(sc.prompt_en)}">نسخ أمر اللقطة</button></div>`).join('')}
+   ${ep.caption?`<div class="scene"><h4>وصف النشر</h4><p style="margin:0">${esc(ep.caption)}</p><p class="note">${ep.hashtags.map(h=>'#'+esc(String(h).replace(/^#/,''))).join(' ')}</p><button class="copy" data-copy="${esc(ep.caption+'\n'+ep.hashtags.map(h=>'#'+String(h).replace(/^#/,'')).join(' '))}">نسخ الوصف</button></div>`:''}
+   ${ep.poll.q?`<div class="note">تصويت الجمهور: ${esc(ep.poll.q)} — ${tot} صوت${ep.poll.options.map((o,i)=>` · ${esc(o)}: ${c[i]||0}`).join('')}</div>`:''}
+  </div></details>`;
+}
+
+$('#myTabs').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b){S.cur=b.dataset.id;renderStudio()}});
+document.addEventListener('click',async e=>{
+  const cp=e.target.closest('[data-copy]');
+  if(cp){try{await navigator.clipboard.writeText(cp.dataset.copy);const t=cp.textContent;cp.textContent='تم النسخ ✓';setTimeout(()=>cp.textContent=t,1400)}catch(_){cp.textContent='انسخ يدوياً'}return}
+  const a=e.target.closest('[data-act]');if(!a||a.dataset.act==='upload')return;
+  const s=S.series.find(x=>x.id===S.cur);if(!s)return;
+  const d=a.closest('.ep'),ep=d?s.episodes.find(x=>x.n===+d.dataset.n):null;
+  if(d)S.open=ep.n;
+  const act=a.dataset.act;
+  if(act==='pubShow'){s.published=!s.published;if(s.published&&!s.episodes.some(x=>x.published))s.episodes[0].published=true;await save(s)}
+  if(act==='del'){if(a.dataset.sure){S.series=S.series.filter(x=>x.id!==s.id);S.cur=null;try{await api('/api/series/'+s.id,{method:'DELETE'})}catch(_){}render()}else{a.dataset.sure=1;a.textContent='متأكد؟ اضغط مرة ثانية'}}
+  if(act==='pubEp'){ep.published=!ep.published;await save(s)}
+  if(act==='write'){
+    a.disabled=true;a.textContent='جاري الكتابة…';a.classList.add('pulse');
+    try{
+      const v=await ask(epPrompt(s,ep,ep.n>1?winnerOf(s,ep.n-1):''));
+      ep.scenes=(v.scenes||[]).slice(0,8).map(x=>({place:String(x.place||''),action:String(x.action||''),prompt_en:String(x.prompt_en||''),lines:(x.lines||[]).map(l=>({who:String(l.who||''),text:String(l.text||'')}))}));
+      ep.caption=String(v.caption||'');ep.hashtags=(v.hashtags||[]).slice(0,10).map(String);
+      await save(s);
+    }catch(err){a.disabled=false;a.classList.remove('pulse');a.textContent='صار خطأ: '+(err.message||'جرّب مرة ثانية')}
+  }
+  if(act==='listen')speakEp(s,ep,a);
+});
+document.addEventListener('change',async e=>{
+  const inp=e.target.closest('[data-act=upload]');if(!inp||!inp.files[0])return;
+  const f=inp.files[0],s=S.series.find(x=>x.id===S.cur),ep=s.episodes.find(x=>x.n===+inp.closest('.ep').dataset.n);
+  const lab=inp.parentElement;
+  if(f.size>20*1024*1024){lab.firstChild.textContent='الحد الأقصى 20 ميجا';return}
+  lab.firstChild.textContent='جاري الرفع…';
+  try{const r=await fetch('/api/upload',{method:'POST',credentials:'same-origin',headers:{'Content-Type':f.type||'video/mp4'},body:f});const d=await r.json();if(!r.ok)throw d;ep.video=d.id;S.open=ep.n;await save(s)}catch(err){lab.firstChild.textContent=(err&&err.error)||'تعذر الرفع'}
+});
+
+async function speakEp(s,ep,btn){
+  const sy=window.speechSynthesis;if(!sy){btn.textContent='الصوت غير متاح في هذا المتصفح';return}
+  if(btn.dataset.on){sy.cancel();delete btn.dataset.on;btn.textContent='اسمع الحوار';return}
+  const ci=n=>Math.max(0,s.characters.findIndex(c=>c.name===n));
+  const lines=ep.scenes.flatMap(sc=>(sc.lines||[]).map(l=>({text:l.text,i:ci(l.who)})));
+  if(!lines.length)return;
+  btn.dataset.on=1;btn.textContent='إيقاف';
+  const pitches=[1,1.35,0.75,1.15,0.9,1.5];
+  lines.forEach((l,k)=>{const u=new SpeechSynthesisUtterance(l.text);u.lang='ar-SA';u.pitch=pitches[l.i%6];u.rate=1;if(k===lines.length-1)u.onend=()=>{delete btn.dataset.on;btn.textContent='اسمع الحوار'};sy.speak(u)});
+}
+
+/* ---------- site render ---------- */
+function hue(str){let h=0;for(const ch of str)h=(h*31+ch.charCodeAt(0))%360;return h}
+function poster(s){
+  const h=hue(s.id),t=esc(s.title);
+  return `<svg class="poster" viewBox="0 0 300 400" role="img" aria-label="${t}"><defs><linearGradient id="g${esc(s.id)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${h} 75% 55%)"/><stop offset="1" stop-color="hsl(${(h+40)%360} 70% 28%)"/></linearGradient></defs>
+  <rect width="300" height="400" fill="url(#g${esc(s.id)})"/>
+  <circle cx="150" cy="170" r="92" fill="hsl(${(h+180)%360} 80% 70%)" opacity=".9"/><ellipse cx="150" cy="275" rx="95" ry="14" fill="#000" opacity=".25"/>
+  <circle cx="120" cy="160" r="12" fill="#1b1311"/><circle cx="180" cy="160" r="12" fill="#1b1311"/><circle cx="124" cy="156" r="4" fill="#fff"/><circle cx="184" cy="156" r="4" fill="#fff"/>
+  <path d="M125 200 Q150 ${s.genre.includes('كوميديا')?'225':'188'} 175 200" stroke="#1b1311" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M150 78 q10-30 38-34" stroke="#2f7d32" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <rect x="0" y="300" width="300" height="100" fill="#000" opacity=".35"/>
+  <text x="150" y="358" text-anchor="middle" fill="#fff" font-family="Lalezar,sans-serif" font-size="${t.length>16?24:34}">${t}</text></svg>`;
+}
+function renderSite(){
+  const pub=S.series.filter(s=>s.published&&s.episodes.some(e=>e.published));
+  const m=location.hash.match(/^#show-([a-z0-9]+)$/i);
+  const s=m&&pub.find(x=>x.id===m[1]);
+  const el=$('#site');
+  if(s){
+    const eps=s.episodes.filter(e=>e.published);
+    if(!eps.find(e=>e.n===S.siteEp))S.siteEp=eps[eps.length-1].n;
+    const ep=eps.find(e=>e.n===S.siteEp);
+    const c=tally(s.id,ep.n),tot=Object.values(c).reduce((a,b)=>a+b,0),myPick=S.mine[s.id+'__'+ep.n];
+    el.innerHTML=`<div class="band hero">
+      <div><a href="#site" class="note">← كل المسلسلات</a><h1 style="margin-top:8px">${esc(s.title)}</h1><p>${esc(s.logline)}</p>
+       <div class="eplist">${eps.map(e=>`<button class="chip" data-ep="${e.n}" aria-pressed="${e.n===ep.n}">الحلقة ${e.n}</button>`).join('')}</div>
+       <h2 style="margin-top:18px">الحلقة ${ep.n}: ${esc(ep.title)}</h2><p>${esc(ep.summary)}</p>
+       ${ep.poll.q?`<div class="poll"><h3>${esc(ep.poll.q)}</h3><p class="note">صوّت وحدد وش يصير في الحلقة الجاية · ${tot} صوت</p>
+        ${ep.poll.options.map((o,i)=>{const p=tot?Math.round((c[i]||0)*100/tot):0;return `<button class="opt ${myPick===i?'mine':''}" data-vote="${i}"><span class="bar" style="width:${p}%"></span><span class="tx"><span>${esc(o)}</span><span>${p}%</span></span></button>`}).join('')}
+        <div class="status" id="voteMsg"></div></div>`:''}
+       <h3 style="margin-top:22px">الشخصيات</h3><p class="note">${s.characters.map(c=>esc(c.name)+(c.hero?' (البطل)':'')+' — '+esc(c.role)).join(' · ')}</p>
+      </div>
+      <div class="phone"><div class="screen">${ep.video?`<video controls playsinline preload="metadata" src="/v/${esc(ep.video)}"></video>`:
+        `<div class="story"><h3>الحلقة ${ep.n}</h3>${ep.scenes.length?ep.scenes.map(sc=>`<div class="sc"><b>${esc(sc.place)}</b><div>${esc(sc.action)}</div>${(sc.lines||[]).map(l=>`<div><b>${esc(l.who)}:</b> ${esc(l.text)}</div>`).join('')}</div>`).join(''):`<p>${esc(ep.summary)}</p>`}<p><b>وانتهت الحلقة على:</b> ${esc(ep.cliffhanger)}</p></div>`}
+      </div></div></div>`;
+    return;
+  }
+  const latest=pub[0];
+  el.innerHTML=`<div class="band hero">
+    <div><h1>مسلسلات قصيرة بالذكاء الاصطناعي</h1><p style="font-size:18px">حلقات عمودية للجوال، وأنت تختار بتصويتك وش يصير في الحلقة الجاية.</p>
+     ${latest?`<a class="btn red" href="#show-${esc(latest.id)}">شاهد «${esc(latest.title)}»</a>`:''}</div>
+    <div class="phone"><div class="screen" style="align-items:center;justify-content:center;text-align:center;padding:20px">${latest?poster(latest):'<h2>قريباً</h2><p>أول مسلسل في الطريق</p>'}</div></div>
+   </div>
+   <div class="band">${pub.length?`<h2 style="margin-bottom:14px">كل المسلسلات</h2><div class="shows">${pub.map(s=>`<a class="show" href="#show-${esc(s.id)}">${poster(s)}<b>${esc(s.title)}</b><span class="note">${s.episodes.filter(e=>e.published).length} حلقات · ${esc(s.genre)}</span></a>`).join('')}</div>`:
+   `<div class="empty"><h2>ما فيه مسلسلات منشورة</h2><p class="note">${S.canEdit?'روح للاستوديو واكتب أول مسلسل، ثم اضغط «انشر».':'تابعنا، أول مسلسل قريب.'}</p>${S.canEdit?'<a class="btn red" href="#studio">افتح الاستوديو</a>':''}</div>`}</div>`;
+}
+$('#site').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-ep]');if(b){S.siteEp=+b.dataset.ep;renderSite();return}
+  const v=e.target.closest('[data-vote]');if(!v)return;
+  const m=location.hash.match(/^#show-([a-z0-9]+)$/i);if(!m)return;
+  const msg=$('#voteMsg');
+  const key=m[1]+'__'+S.siteEp;
+  try{const d=await api('/api/vote',{method:'POST',body:JSON.stringify({key,idx:+v.dataset.vote})});S.counts=d.counts;S.mine=d.mine;renderSite()}catch(err){msg.textContent=err.message}
+});
+
+/* ---------- routing ---------- */
+function render(){
+  const studio=location.hash==='#studio'&&S.canEdit,login=location.hash==='#studio'&&!S.canEdit;
+  $('#login').classList.toggle('hide',!login);
+  $('#site').classList.toggle('hide',studio||login);$('#studio').classList.toggle('hide',!studio);
+  $('#nSite').classList.toggle('on',!studio);$('#nStudio').classList.toggle('on',studio);
+  $('#nStudio').classList.toggle('hide',!S.canEdit);
+  S.series.sort((a,b)=>(b.created||0)-(a.created||0));
+  if(studio)renderStudio();else renderSite();
+}
+addEventListener('hashchange',()=>{S.siteEp=null;render();scrollTo(0,0)});
+
+async function loadAll(){
+  try{const d=await api('/api/series');S.series=d.series}catch(e){}
+  try{const v=await api('/api/votes');S.counts=v.counts;S.mine=v.mine}catch(e){}
+  render();
+}
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('#loginMsg');m.textContent='';
+  try{await api('/api/login',{method:'POST',body:JSON.stringify({password:$('#pw').value})});S.canEdit=true;S.assets=true;$('#pw').value='';await loadAll()}catch(err){m.textContent=err.message;m.className='status err'}});
+render();
+(async()=>{
+  try{const me=await api('/api/me');S.canEdit=me.admin;S.assets=me.admin;S.ai=me.ai}catch(e){}
+  await loadAll();
+  setInterval(async()=>{if(document.hidden)return;try{const v=await api('/api/votes');S.counts=v.counts;S.mine=v.mine;if(location.hash!=='#studio')render()}catch(e){}},30000);
+})();
+}
+</script>
+</body>
+</html>
