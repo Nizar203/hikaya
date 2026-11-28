@@ -59,10 +59,18 @@ async function init() {
     CREATE TABLE IF NOT EXISTS series (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated TIMESTAMPTZ DEFAULT now());
     CREATE TABLE IF NOT EXISTS votes (visitor TEXT NOT NULL, key TEXT NOT NULL, idx INT NOT NULL, PRIMARY KEY (visitor, key));
     CREATE TABLE IF NOT EXISTS videos (id TEXT PRIMARY KEY, type TEXT NOT NULL, data BYTEA NOT NULL, created TIMESTAMPTZ DEFAULT now());
+    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, pass TEXT NOT NULL, coins INT NOT NULL DEFAULT 0, vip_until TIMESTAMPTZ, last_checkin DATE, created TIMESTAMPTZ DEFAULT now());
+    CREATE TABLE IF NOT EXISTS unlocks (uid TEXT NOT NULL, sid TEXT NOT NULL, n INT NOT NULL, at TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (uid, sid, n));
+    CREATE TABLE IF NOT EXISTS progress (uid TEXT NOT NULL, sid TEXT NOT NULL, n INT NOT NULL, at TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (uid, sid));
+    CREATE TABLE IF NOT EXISTS favs (uid TEXT NOT NULL, sid TEXT NOT NULL, at TIMESTAMPTZ DEFAULT now(), PRIMARY KEY (uid, sid));
+    CREATE TABLE IF NOT EXISTS stats (sid TEXT PRIMARY KEY, views INT NOT NULL DEFAULT 0);
   `);
 }
 
-const INDEX = fs.readFileSync(path.join(__dirname, 'public', 'index.html'));
+const STUDIO = fs.readFileSync(path.join(__dirname, 'public', 'index.html'));
+const WATCH = fs.readFileSync(path.join(__dirname, 'public', 'watch.html'));
+const WELCOME_COINS = Number(process.env.WELCOME_COINS || 50);
+const CHECKIN_COINS = Number(process.env.CHECKIN_COINS || 10);
 
 function sign(v) { return v + '.' + crypto.createHmac('sha256', SECRET).update(v).digest('base64url'); }
 function unsign(s) {
@@ -77,6 +85,12 @@ function cookies(req) {
   return o;
 }
 const isAdmin = req => unsign(cookies(req).hk_admin) === 'admin';
+const userId = req => { const v = unsign(cookies(req).hk_u); return v && v.startsWith('u:') ? v.slice(2) : null; };
+const hashPass = (pw, salt = crypto.randomBytes(16).toString('hex')) => salt + ':' + crypto.scryptSync(pw, salt, 32).toString('hex');
+const checkPass = (pw, stored) => { const [salt, h] = String(stored).split(':'); const a = Buffer.from(hashPass(pw, salt).split(':')[1], 'hex'), b = Buffer.from(h || '', 'hex'); return a.length === b.length && crypto.timingSafeEqual(a, b); };
+const userCookie = id => `hk_u=${encodeURIComponent(sign('u:' + id))}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax; Secure`;
+const isVip = u => u && u.vip_until && new Date(u.vip_until) > new Date();
+async function getUser(req) { const id = userId(req); if (!id) return null; const r = await pool.query('SELECT * FROM users WHERE id=$1', [id]); return r.rows[0] || null; }
 function visitor(req, res) {
   let v = unsign(cookies(req).hk_v);
   if (!v) { v = crypto.randomBytes(12).toString('hex'); res.setHeader('Set-Cookie', `hk_v=${encodeURIComponent(sign(v))}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax; Secure`); }
@@ -102,6 +116,23 @@ function publicView(s) {
   const eps = (s.episodes || []).filter(e => e.published);
   if (!eps.length) return null;
   return { ...s, episodes: eps };
+}
+
+// نسخة المشاهد على طريقة NetShort: الحلقات المقفلة تظهر بعنوانها وملخصها فقط
+const strip = sc => ({ place: sc.place, action: sc.action, lines: sc.lines, video: sc.video || null });
+function catalogView(s, unlocked, vip) {
+  const pv = publicView(s); if (!pv) return null;
+  const free = Number.isInteger(s.freeEps) ? s.freeEps : 5, price = Number.isInteger(s.epPrice) ? s.epPrice : 10;
+  const cover = s.cover || (s.characters || []).find(c => c.hero && c.img)?.img || (s.characters || []).find(c => c.img)?.img || null;
+  return {
+    id: s.id, title: s.title, logline: s.logline, genre: s.genre, heroes: s.heroes, featured: !!s.featured, cover, free, price,
+    characters: (s.characters || []).map(c => ({ name: c.name, role: c.role, hero: !!c.hero, img: c.img || null })),
+    episodes: pv.episodes.map(e => {
+      const open = e.n <= free || vip || unlocked.has(s.id + '__' + e.n);
+      return { n: e.n, title: e.title, summary: e.summary, locked: !open, poll: open ? e.poll : null, cliffhanger: open ? e.cliffhanger : null,
+        video: open ? (e.video || null) : null, scenes: open ? (e.scenes || []).map(strip) : [], thumb: (e.scenes || []).find(x => x.frame)?.frame || null };
+    })
+  };
 }
 
 // محدد بسيط للطلبات
@@ -138,6 +169,97 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/logout') return send(res, 200, { ok: true }, { 'Set-Cookie': 'hk_admin=; Path=/; Max-Age=0' });
 
     if (!pool && p.startsWith('/api/')) return send(res, 503, { error: 'قاعدة البيانات غير مربوطة' });
+
+    // ===== المشاهدون =====
+    if (p === '/api/catalog' && req.method === 'GET') {
+      const u = await getUser(req);
+      const un = new Set(u ? (await pool.query('SELECT sid, n FROM unlocks WHERE uid=$1', [u.id])).rows.map(x => x.sid + '__' + x.n) : []);
+      const r = await pool.query('SELECT s.data, COALESCE(t.views,0) AS views FROM series s LEFT JOIN stats t ON t.sid = s.id ORDER BY s.updated DESC');
+      return send(res, 200, { series: r.rows.map(x => { const c = catalogView(x.data, un, isVip(u)); if (c) c.views = x.views; return c; }).filter(Boolean) });
+    }
+    if (p === '/api/u/register' && req.method === 'POST') {
+      if (limited('reg:' + req.socket.remoteAddress, 10, 3600e3)) return send(res, 429, { error: 'محاولات كثيرة' });
+      const { name, email, password } = await json(req);
+      const em = String(email || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return send(res, 400, { error: 'البريد غير صحيح' });
+      if (String(password || '').length < 6) return send(res, 400, { error: 'كلمة السر 6 أحرف على الأقل' });
+      const nm = String(name || '').trim().slice(0, 40) || em.split('@')[0];
+      const id = crypto.randomBytes(9).toString('hex');
+      try { await pool.query('INSERT INTO users(id,email,name,pass,coins) VALUES($1,$2,$3,$4,$5)', [id, em, nm, hashPass(String(password)), WELCOME_COINS]); }
+      catch (e) { return send(res, 409, { error: 'البريد مسجل من قبل، سجّل دخول' }); }
+      return send(res, 200, { ok: true, welcome: WELCOME_COINS }, { 'Set-Cookie': userCookie(id) });
+    }
+    if (p === '/api/u/login' && req.method === 'POST') {
+      if (limited('ulogin:' + req.socket.remoteAddress, 20, 15 * 60e3)) return send(res, 429, { error: 'محاولات كثيرة' });
+      const { email, password } = await json(req);
+      const r = await pool.query('SELECT id, pass FROM users WHERE email=$1', [String(email || '').trim().toLowerCase()]);
+      if (!r.rows.length || !checkPass(String(password || ''), r.rows[0].pass)) return send(res, 401, { error: 'البريد أو كلمة السر غلط' });
+      return send(res, 200, { ok: true }, { 'Set-Cookie': userCookie(r.rows[0].id) });
+    }
+    if (p === '/api/u/logout') return send(res, 200, { ok: true }, { 'Set-Cookie': 'hk_u=; Path=/; Max-Age=0' });
+    if (p === '/api/u/me' && req.method === 'GET') {
+      const u = await getUser(req);
+      if (!u) return send(res, 200, { user: null });
+      const [pr, fv] = await Promise.all([pool.query('SELECT sid, n FROM progress WHERE uid=$1 ORDER BY at DESC LIMIT 20', [u.id]), pool.query('SELECT sid FROM favs WHERE uid=$1 ORDER BY at DESC', [u.id])]);
+      const today = new Date().toISOString().slice(0, 10);
+      return send(res, 200, { user: { name: u.name, email: u.email, coins: u.coins, vip: isVip(u), vipUntil: u.vip_until, checkedToday: u.last_checkin && new Date(u.last_checkin).toISOString().slice(0, 10) === today }, progress: pr.rows, favs: fv.rows.map(x => x.sid), checkin: CHECKIN_COINS });
+    }
+    if (p === '/api/u/checkin' && req.method === 'POST') {
+      const id = userId(req); if (!id) return send(res, 401, { error: 'سجّل دخول أول' });
+      const r = await pool.query("UPDATE users SET coins = coins + $2, last_checkin = CURRENT_DATE WHERE id=$1 AND (last_checkin IS NULL OR last_checkin < CURRENT_DATE) RETURNING coins", [id, CHECKIN_COINS]);
+      if (!r.rows.length) return send(res, 400, { error: 'أخذت مكافأة اليوم، ارجع بكرة' });
+      return send(res, 200, { coins: r.rows[0].coins, added: CHECKIN_COINS });
+    }
+    if (p === '/api/u/unlock' && req.method === 'POST') {
+      const id = userId(req); if (!id) return send(res, 401, { error: 'سجّل دخول أول' });
+      const { sid, n } = await json(req);
+      const sr = await pool.query('SELECT data FROM series WHERE id=$1', [String(sid || '')]);
+      const s = sr.rows[0]?.data; if (!s || !s.published) return send(res, 404, { error: 'المسلسل غير موجود' });
+      const ep = (s.episodes || []).find(e => e.n === n && e.published); if (!ep) return send(res, 404, { error: 'الحلقة غير موجودة' });
+      const price = Number.isInteger(s.epPrice) ? s.epPrice : 10;
+      const c = await pool.connect();
+      try {
+        await c.query('BEGIN');
+        const had = await c.query('SELECT 1 FROM unlocks WHERE uid=$1 AND sid=$2 AND n=$3', [id, s.id, n]);
+        if (had.rows.length) { await c.query('ROLLBACK'); return send(res, 200, { ok: true }); }
+        const u = await c.query('UPDATE users SET coins = coins - $2 WHERE id=$1 AND coins >= $2 RETURNING coins', [id, price]);
+        if (!u.rows.length) { await c.query('ROLLBACK'); return send(res, 402, { error: 'رصيدك ما يكفي', need: price }); }
+        await c.query('INSERT INTO unlocks(uid,sid,n) VALUES($1,$2,$3)', [id, s.id, n]);
+        await c.query('COMMIT');
+        return send(res, 200, { ok: true, coins: u.rows[0].coins });
+      } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
+    }
+    if (p === '/api/u/progress' && req.method === 'POST') {
+      const { sid, n } = await json(req);
+      if (typeof sid !== 'string' || !/^[a-z0-9]{4,40}$/i.test(sid) || !Number.isInteger(n)) return send(res, 400, { error: 'بيانات غير صالحة' });
+      if (!limited('view:' + req.socket.remoteAddress + sid + n, 1, 600e3)) await pool.query('INSERT INTO stats(sid,views) VALUES($1,1) ON CONFLICT(sid) DO UPDATE SET views = stats.views + 1', [sid]);
+      const id = userId(req);
+      if (id) await pool.query('INSERT INTO progress(uid,sid,n,at) VALUES($1,$2,$3,now()) ON CONFLICT(uid,sid) DO UPDATE SET n=$3, at=now()', [id, sid, n]);
+      return send(res, 200, { ok: true });
+    }
+    if (p === '/api/u/fav' && req.method === 'POST') {
+      const id = userId(req); if (!id) return send(res, 401, { error: 'سجّل دخول أول' });
+      const { sid, on } = await json(req);
+      if (typeof sid !== 'string' || !/^[a-z0-9]{4,40}$/i.test(sid)) return send(res, 400, { error: 'بيانات غير صالحة' });
+      if (on) await pool.query('INSERT INTO favs(uid,sid) VALUES($1,$2) ON CONFLICT DO NOTHING', [id, sid]); else await pool.query('DELETE FROM favs WHERE uid=$1 AND sid=$2', [id, sid]);
+      return send(res, 200, { ok: true });
+    }
+    // ===== إدارة المشاهدين =====
+    if (p === '/api/admin/users' && req.method === 'GET') {
+      if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
+      const r = await pool.query('SELECT id, name, email, coins, vip_until, created FROM users ORDER BY created DESC LIMIT 500');
+      const t = await pool.query('SELECT count(*)::int AS users, COALESCE(sum(coins),0)::int AS coins FROM users');
+      const un = await pool.query('SELECT count(*)::int AS c FROM unlocks');
+      return send(res, 200, { users: r.rows, totals: { ...t.rows[0], unlocks: un.rows[0].c } });
+    }
+    if (p === '/api/admin/grant' && req.method === 'POST') {
+      if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
+      const { uid, coins, vipDays } = await json(req);
+      const c = Number.isInteger(coins) ? Math.max(-100000, Math.min(100000, coins)) : 0, d = Number.isInteger(vipDays) ? Math.max(0, Math.min(3650, vipDays)) : 0;
+      const r = await pool.query("UPDATE users SET coins = GREATEST(0, coins + $2), vip_until = CASE WHEN $3::int > 0 THEN GREATEST(COALESCE(vip_until, now()), now()) + ($3::int || ' days')::interval ELSE vip_until END WHERE id=$1 RETURNING coins, vip_until", [String(uid || ''), c, d]);
+      if (!r.rows.length) return send(res, 404, { error: 'المستخدم غير موجود' });
+      return send(res, 200, r.rows[0]);
+    }
 
     if (p === '/api/series' && req.method === 'GET') {
       const r = await pool.query('SELECT data FROM series ORDER BY updated DESC');
@@ -290,9 +412,13 @@ const server = http.createServer(async (req, res) => {
       return res.end(data);
     }
 
+    if (p === '/studio' || p === '/studio/') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+      return res.end(STUDIO);
+    }
     if (p === '/' || p === '/index.html') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
-      return res.end(INDEX);
+      return res.end(WATCH);
     }
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('غير موجود');
   } catch (e) {

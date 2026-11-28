@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0d">
+<title>حكايا — مسلسلات قصيرة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0d;--s1:#15151b;--s2:#1f1f28;--s3:#2a2a35;--ink:#f6f6f8;--mut:#9d9daa;--acc:#ff2e63;--acc2:#ff7a45;--gold:#ffc83d;--line:#2a2a33;--r:14px;color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Cairo,"Segoe UI",Tahoma,sans-serif;overflow-x:clip}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+.hide{display:none!important}
+.wrap{max-width:1180px;margin:auto;padding:0 16px}
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:linear-gradient(#0a0a0de6,#0a0a0d00);backdrop-filter:blur(6px);padding:calc(10px + env(safe-area-inset-top)) 0 10px}
+.top .wrap{display:flex;align-items:center;gap:12px}
+.logo{font-weight:900;font-size:26px;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.logo b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo i{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center}
+.logo i:after{content:"";border-inline-start:9px solid #fff;border-block:6px solid transparent;margin-inline-start:2px;transform:scaleX(-1)}
+.sp{flex:1}
+.coins{display:flex;align-items:center;gap:6px;background:var(--s2);border-radius:99px;padding:5px 12px 5px 8px;font-weight:700;min-height:36px}
+.coin{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe38a,var(--gold) 55%,#d69a00);box-shadow:inset 0 -2px 0 #0003;flex:none}
+.ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--s2)}
+.ic svg{width:20px;height:20px}
+/* hero */
+.hero{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 0 6px;scrollbar-width:none}
+.hero::-webkit-scrollbar,.row::-webkit-scrollbar,.chips::-webkit-scrollbar{display:none}
+.slide{flex:0 0 min(100%,860px);scroll-snap-align:center;position:relative;border-radius:22px;overflow:hidden;aspect-ratio:16/10;max-height:480px;background:var(--s1)}
+@media(max-width:640px){.slide{aspect-ratio:4/5;flex-basis:88%}}
+.slide .art,.card .art,.bg .art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slide:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0a0a0d 6%,#0a0a0d99 35%,#0000 65%)}
+.slide .info{position:absolute;inset-inline:0;bottom:0;z-index:1;padding:22px}
+.slide h2{font-size:clamp(26px,4.5vw,42px);font-weight:900;line-height:1.1;margin:6px 0 8px;text-wrap:balance}
+.slide p{margin:0 0 14px;color:#d6d6de;max-width:52ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:#ffffff1f}
+.tag.hot{background:var(--acc)}
+.cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff;font-weight:800;border-radius:99px;padding:11px 22px;min-height:46px;box-shadow:0 10px 30px -10px var(--acc)}
+.cta.ghost{background:var(--s2);box-shadow:none}
+.cta svg{width:18px;height:18px}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:8px}.dots span{width:6px;height:6px;border-radius:9px;background:var(--s3);transition:.3s}.dots span.on{width:20px;background:var(--acc)}
+/* sections */
+.sec{margin-top:26px}
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.sh h3{margin:0;font-size:19px;font-weight:800}
+.sh small{color:var(--mut)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-top:18px;scrollbar-width:none}
+.chip{flex:none;padding:7px 16px;border-radius:99px;background:var(--s1);border:1px solid var(--line);font-weight:700;min-height:40px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.row{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(120px,30vw,172px);gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:4px;scrollbar-width:none}
+.row>*{scroll-snap-align:start}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.card{display:block;text-align:start;width:100%}
+.poster{position:relative;aspect-ratio:2/3;border-radius:var(--r);overflow:hidden;background:var(--s1);display:block}
+.poster:after{content:"";position:absolute;inset:auto 0 0;height:40%;background:linear-gradient(0deg,#000b,#0000)}
+.poster .eps{position:absolute;z-index:1;bottom:8px;inset-inline-start:8px;font-size:12px;font-weight:700}
+.badge{position:absolute;z-index:1;top:8px;inset-inline-start:8px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;background:var(--acc)}
+.rank{position:absolute;z-index:1;bottom:-14px;inset-inline-end:2px;font-size:72px;font-weight:900;line-height:1;color:transparent;-webkit-text-stroke:2px #ffffffcc}
+.card b{display:block;margin-top:8px;font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card small{color:var(--mut);font-size:12px}
+.bar{height:3px;background:var(--s3);border-radius:3px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}
+.gen{position:absolute;inset:0;display:flex;align-items:flex-end;padding:12px;font-weight:900;font-size:20px;line-height:1.15}
+/* series page */
+.bg{position:relative;height:300px;overflow:hidden}
+.bg .art{filter:blur(28px) brightness(.55);transform:scale(1.2)}
+.bg:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg),#0a0a0d55)}
+.shead{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;margin-top:-220px;position:relative;z-index:1;align-items:end}
+@media(max-width:520px){.shead{grid-template-columns:118px minmax(0,1fr);margin-top:-200px}}
+.shead h1{margin:0 0 6px;font-size:clamp(24px,4vw,36px);font-weight:900;line-height:1.15}
+.meta{color:var(--mut);font-size:13px;margin-bottom:10px}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.desc{color:#cfcfd8;margin-top:14px}
+.epgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px}
+.ep{position:relative;aspect-ratio:1;border-radius:12px;background:var(--s1);border:1px solid var(--line);font-weight:800;font-size:18px;display:grid;place-items:center}
+.ep.cur{border-color:var(--acc);color:var(--acc)}
+.ep .lk{position:absolute;top:5px;inset-inline-end:5px;width:15px;height:15px;opacity:.8}
+.ep.free:before{content:"مجاني";position:absolute;bottom:4px;font-size:9px;color:#5ee38f;font-weight:700}
+.cast{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none}
+.person{flex:none;width:78px;text-align:center;font-size:12px}
+.person .av{width:64px;height:64px;border-radius:50%;margin:0 auto 6px;background:var(--s2);overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:22px}
+.person .av img{width:100%;height:100%;object-fit:cover}
+.poll{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:16px}
+.opt{display:block;width:100%;text-align:start;margin-top:8px;border-radius:12px;padding:11px 14px;background:var(--s2);position:relative;overflow:hidden;min-height:46px}
+.opt .f{position:absolute;inset-block:0;inset-inline-start:0;background:linear-gradient(90deg,#ff2e6355,#ff7a4544)}
+.opt span{position:relative;display:flex;justify-content:space-between;gap:10px}
+.opt.mine{outline:2px solid var(--acc)}
+/* player */
+.player{position:fixed;inset:0;z-index:50;background:#000;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}
+.player::-webkit-scrollbar{display:none}
+.pslide{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;display:grid;place-items:center;overflow:hidden}
+.pslide video{width:100%;height:100%;object-fit:contain;background:#000}
+@media(min-width:700px){.pslide video,.pslide .story,.pslide .lock{max-width:calc(100dvh * 9 / 16)}}
+.pui{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom))}
+.pui>*{pointer-events:auto}
+.ptop{display:flex;align-items:center;gap:10px}
+.ptop .ttl{font-weight:800;text-shadow:0 1px 6px #000}
+.pbot{display:flex;align-items:flex-end;gap:12px;background:linear-gradient(0deg,#000c,#0000);margin:0 -14px -18px;padding:40px 14px 18px}
+.pbot .txt{flex:1}
+.pbot h4{margin:0;font-size:17px;font-weight:800}
+.pbot p{margin:4px 0 0;font-size:13px;color:#ddd;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.side{display:flex;flex-direction:column;gap:16px;align-items:center}
+.side button{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:700;text-shadow:0 1px 4px #000}
+.side svg{width:30px;height:30px;filter:drop-shadow(0 1px 3px #000)}
+.side .on svg{color:var(--acc);fill:var(--acc)}
+.tap{position:absolute;inset:0}
+.pp{position:absolute;width:74px;height:74px;border-radius:50%;background:#0008;display:grid;place-items:center;pointer-events:none;opacity:0;transition:.2s}.pp.show{opacity:1}
+.prog{position:absolute;inset-inline:0;bottom:0;height:3px;background:#ffffff33}.prog i{display:block;height:100%;background:var(--acc);width:0}
+.story,.lock{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:90px 22px 140px;position:relative;overflow:auto}
+.story{background:radial-gradient(circle at 50% 30%,#2a1220,#000)}
+.story .sc{background:#ffffff12;border-radius:14px;padding:12px;margin:6px 0}
+.lock{align-items:center;text-align:center;gap:10px}
+.lock .art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(18px) brightness(.4)}
+.lock>*{position:relative}
+.lock .pad{width:64px;height:64px;border-radius:50%;background:#ffffff1a;display:grid;place-items:center}
+.lock .pad svg{width:30px;height:30px}
+.lock h3{margin:4px 0 0;font-size:22px;font-weight:900}
+.lock .cta{min-width:240px;justify-content:center}
+/* sheet & toast */
+.sheet{position:fixed;inset:0;z-index:80;background:#000a;display:flex;align-items:flex-end;justify-content:center}
+.sheet .box{background:var(--s1);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));max-height:86dvh;overflow:auto}
+.sheet h3{margin:0 0 12px;font-size:20px;font-weight:900}
+.field{display:block;margin-top:10px}
+.field input{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.field input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.full{width:100%;justify-content:center;margin-top:14px}
+.link{color:var(--acc);font-weight:700;padding:8px 0}
+.err{color:#ff6b81;font-size:13px;min-height:1.2em;margin-top:8px}
+.toast{position:fixed;z-index:99;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);font-weight:700;padding:10px 18px;border-radius:99px;box-shadow:0 10px 30px #0008;max-width:90vw;text-align:center}
+/* account */
+.pcard{background:linear-gradient(135deg,#2a1220,#15151b 60%);border:1px solid var(--line);border-radius:22px;padding:20px;display:flex;align-items:center;gap:14px}
+.pcard .av{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;font-weight:900;font-size:24px;flex:none}
+.wallet{margin-top:14px;background:var(--s1);border:1px solid var(--line);border-radius:22px;padding:18px}
+.big{font-size:38px;font-weight:900;display:flex;align-items:center;gap:10px}.big .coin{width:30px;height:30px}
+.packs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.pack{background:var(--s2);border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;position:relative}
+.pack b{display:flex;justify-content:center;align-items:center;gap:6px;font-size:20px}
+.pack small{display:block;color:var(--mut)}
+.pack .x{position:absolute;top:-9px;inset-inline:0;margin:auto;width:max-content;font-size:10px;font-weight:800;background:var(--acc);border-radius:99px;padding:1px 8px}
+.vip{margin-top:14px;border-radius:22px;padding:18px;background:linear-gradient(135deg,#3b2a05,#1a1406);border:1px solid #6b5212}
+.vip h3{margin:0;color:var(--gold);font-weight:900}
+.list{margin-top:14px;background:var(--s1);border-radius:18px;overflow:hidden}
+.list button,.list a{display:flex;width:100%;justify-content:space-between;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line);min-height:52px}
+.empty{text-align:center;color:var(--mut);padding:50px 10px}
+/* tabbar */
+.tabs{position:fixed;z-index:30;inset-inline:0;bottom:0;background:#0d0d12f2;backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+.tabs a{display:grid;justify-items:center;font-size:11px;font-weight:700;color:var(--mut);padding:4px 18px;min-height:48px}
+.tabs a svg{width:24px;height:24px}
+.tabs a.on{color:var(--ink)}.tabs a.on svg{color:var(--acc)}
+main{padding-bottom:110px}
+.skel{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s1));background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="i-home" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></symbol>
+ <symbol id="i-lib" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 21s-7-4.4-9.3-9C1 8.6 3.4 5 7 5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.6 0 6 3.6 4.3 7-2.3 4.6-9.3 9-9.3 9z"/></symbol>
+ <symbol id="i-heart" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" d="M12 21s-7-4.4-9.3-9C1 8.6 3.4 5 7 5c2 0 3.6 1.2 5 3 1.4-1.8 3-3 5-3 3.6 0 6 3.6 4.3 7-2.3 4.6-9.3 9-9.3 9z"/></symbol>
+ <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="currentColor"/><path fill="currentColor" d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4v16l13-8z"/></symbol>
+ <symbol id="i-lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z"/></symbol>
+ <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m9 5 7 7-7 7"/></symbol>
+ <symbol id="i-list" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5h4v4H3zm7 1h11v2H10zM3 10h4v4H3zm7 1h11v2H10zm-7 4h4v4H3zm7 1h11v2H10z"/></symbol>
+ <symbol id="i-share" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16a3 3 0 0 0-2.4 1.2l-6.7-3.4a3 3 0 0 0 0-1.6l6.7-3.4A3 3 0 1 0 15 7l-6.7 3.4a3 3 0 1 0 0 3.2L15 17a3 3 0 1 0 3-1z"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zm5.5-2 5 5"/></symbol>
+</svg>
+
+<header class="top" id="top"><div class="wrap">
+  <a class="logo" href="#home"><i></i><b>حكايا</b></a>
+  <span class="sp"></span>
+  <button class="ic" id="searchBtn" aria-label="بحث"><svg><use href="#i-search"/></svg></button>
+  <a class="coins" href="#my" id="coinPill"><span class="coin"></span><span id="coinN">0</span></a>
+</div></header>
+
+<main id="view"></main>
+<div id="player" class="player hide"></div>
+
+<nav class="tabs" id="tabs">
+  <a href="#home" data-t="home"><svg><use href="#i-home"/></svg>الرئيسية</a>
+  <a href="#lib" data-t="lib"><svg><use href="#i-lib"/></svg>مكتبتي</a>
+  <a href="#my" data-t="my"><svg><use href="#i-user"/></svg>حسابي</a>
+</nav>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S={series:[],me:null,progress:[],favs:[],counts:{},mine:{},genre:'الكل',q:'',checkin:10};
+if(location.hash==='#studio'){location.replace('/studio#studio')}
+
+async function api(u,o={}){const r=await fetch(u,{credentials:'same-origin',...o,headers:{'Content-Type':'application/json',...(o.headers||{})}});let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw{message:d.error||('خطأ '+r.status),status:r.status,data:d};return d}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+function art(s,cls='art'){
+  if(s.cover)return `<img class="${cls}" src="/v/${esc(s.cover)}" alt="" loading="lazy">`;
+  const h=hue(s.id);return `<div class="${cls}" style="background:radial-gradient(circle at 70% 20%,hsl(${(h+40)%360} 80% 55% / .8),transparent 55%),linear-gradient(160deg,hsl(${h} 70% 30%),hsl(${(h+300)%360} 60% 12%))"></div><div class="gen">${esc(s.title)}</div>`;
+}
+const genres=()=>['الكل',...new Set(S.series.map(s=>s.genre).filter(Boolean))];
+const byId=id=>S.series.find(s=>s.id===id);
+const progOf=sid=>(S.progress.find(p=>p.sid===sid)||{}).n||0;
+
+/* ---------- cards ---------- */
+function card(s,{rank,prog}={}){
+  const n=s.episodes.length,p=progOf(s.id);
+  return `<a class="card" href="#s-${esc(s.id)}"><span class="poster">${art(s)}${s.featured?'<span class="badge">حصري</span>':''}${rank?`<span class="rank">${rank}</span>`:`<span class="eps">${n} حلقة</span>`}</span>
+   <b>${esc(s.title)}</b>${prog&&p?`<small>الحلقة ${p} من ${n}</small><div class="bar"><i style="width:${Math.round(p*100/n)}%"></i></div>`:`<small>${esc(s.genre||'')}</small>`}</a>`;
+}
+
+/* ---------- home ---------- */
+function home(){
+  if(!S.loaded){$('#view').innerHTML=`<div class="wrap"><div class="slide skel" style="margin-top:8px"></div><div class="row" style="margin-top:24px">${'<div class="poster skel"></div>'.repeat(6)}</div></div>`;return}
+  const list=S.series.filter(s=>(S.genre==='الكل'||s.genre===S.genre)&&(!S.q||(s.title+s.logline+s.genre).includes(S.q)));
+  if(!S.series.length){$('#view').innerHTML=`<div class="wrap empty"><h2>قريباً على حكايا</h2><p>أول المسلسلات في الطريق، ارجع لنا قريب.</p></div>`;return}
+  const feat=(S.series.filter(s=>s.featured).length?S.series.filter(s=>s.featured):S.series).slice(0,6);
+  const cont=S.progress.map(p=>byId(p.sid)).filter(Boolean);
+  const top=[...S.series].sort((a,b)=>(b.views||0)-(a.views||0)).slice(0,10);
+  $('#view').innerHTML=`<div class="wrap">
+   ${S.q?'':`<div class="hero" id="hero">${feat.map(s=>`<div class="slide">${art(s)}<div class="info"><div class="tags">${s.featured?'<span class="tag hot">حصري</span>':''}<span class="tag">${esc(s.genre||'دراما')}</span><span class="tag">${s.episodes.length} حلقة</span></div>
+     <h2>${esc(s.title)}</h2><p>${esc(s.logline)}</p><a class="cta" href="#play-${esc(s.id)}-${progOf(s.id)||1}"><svg><use href="#i-play"/></svg>${progOf(s.id)?'تابع المشاهدة':'شاهد الآن'}</a></div></div>`).join('')}</div>
+   <div class="dots" id="dots">${feat.map((_,i)=>`<span class="${i?'':'on'}"></span>`).join('')}</div>`}
+   ${S.q?`<div class="sh" style="margin-top:12px"><h3>نتائج «${esc(S.q)}»</h3><button class="link" id="clearQ">مسح</button></div>`:''}
+   <div class="chips">${genres().map(g=>`<button class="chip ${g===S.genre?'on':''}" data-g="${esc(g)}">${esc(g)}</button>`).join('')}</div>
+   ${cont.length&&!S.q&&S.genre==='الكل'?`<section class="sec"><div class="sh"><h3>تابع المشاهدة</h3></div><div class="row">${cont.map(s=>card(s,{prog:1})).join('')}</div></section>`:''}
+   ${!S.q&&S.genre==='الكل'&&top.length>2?`<section class="sec"><div class="sh"><h3>الأكثر مشاهدة</h3></div><div class="row" style="grid-auto-columns:clamp(132px,33vw,184px)">${top.map((s,i)=>card(s,{rank:i+1})).join('')}</div></section>`:''}
+   <section class="sec"><div class="sh"><h3>${S.genre==='الكل'?'كل المسلسلات':esc(S.genre)}</h3><small>${list.length}</small></div>
+   ${list.length?`<div class="grid">${list.map(s=>card(s)).join('')}</div>`:'<div class="empty">ما فيه نتائج</div>'}</section></div>`;
+  const hero=$('#hero');if(hero){hero.addEventListener('scroll',()=>{const i=Math.round(Math.abs(hero.scrollLeft)/hero.firstElementChild.offsetWidth);document.querySelectorAll('#dots span').forEach((d,k)=>d.classList.toggle('on',k===i))},{passive:true})}
+}
+
+/* ---------- series ---------- */
+function seriesPage(id){
+  const s=byId(id);if(!s){$('#view').innerHTML='<div class="wrap empty">المسلسل غير موجود</div>';return}
+  const p=progOf(s.id),fav=S.favs.includes(s.id),last=s.episodes[s.episodes.length-1];
+  const key=s.id+'__'+(last&&last.n),c=S.counts[key]||{},tot=Object.values(c).reduce((a,b)=>a+b,0);
+  $('#view').innerHTML=`<div class="bg">${art(s)}</div><div class="wrap">
+   <div class="shead"><span class="poster">${art(s)}</span><div><h1>${esc(s.title)}</h1>
+    <div class="meta">${esc(s.genre||'دراما')} · ${s.episodes.length} حلقة · ${(s.views||0).toLocaleString('ar')} مشاهدة</div>
+    <div class="tags">${s.featured?'<span class="tag hot">حصري</span>':''}<span class="tag">أول ${s.free} حلقات مجاناً</span></div></div></div>
+   <div class="acts"><a class="cta" href="#play-${esc(s.id)}-${p||1}"><svg><use href="#i-play"/></svg>${p?'تابع الحلقة '+p:'شاهد الحلقة 1'}</a>
+    <button class="cta ghost" data-fav="${esc(s.id)}"><svg style="${fav?'color:var(--acc);fill:var(--acc)':'fill:none'}"><use href="#i-heart"/></svg>${fav?'في مكتبتي':'أضف لمكتبتي'}</button></div>
+   <p class="desc">${esc(s.logline)}</p>
+   ${s.characters.length?`<section class="sec"><div class="sh"><h3>الأبطال</h3></div><div class="cast">${s.characters.map(c=>`<div class="person"><div class="av">${c.img?`<img src="/v/${esc(c.img)}" alt="" loading="lazy">`:esc(c.name.slice(0,1))}</div>${esc(c.name)}${c.hero?'<div style="color:var(--gold);font-size:10px">البطل</div>':''}</div>`).join('')}</div></section>`:''}
+   <section class="sec"><div class="sh"><h3>الحلقات</h3><small>${s.episodes.filter(e=>!e.locked).length} مفتوحة</small></div>
+   <div class="epgrid">${s.episodes.map(e=>`<a class="ep ${e.n===p?'cur':''} ${e.n<=s.free?'free':''}" href="#play-${esc(s.id)}-${e.n}">${e.n}${e.locked?'<svg class="lk"><use href="#i-lock"/></svg>':''}</a>`).join('')}</div></section>
+   ${last&&last.poll&&last.poll.q?`<section class="sec poll"><h3 style="margin:0">${esc(last.poll.q)}</h3><p style="margin:4px 0 0;color:var(--mut);font-size:13px">صوّتك يحدد أحداث الحلقة الجاية · ${tot} صوت</p>
+     ${last.poll.options.map((o,i)=>{const pc=tot?Math.round((c[i]||0)*100/tot):0;return `<button class="opt ${S.mine[key]===i?'mine':''}" data-vote="${esc(key)}" data-i="${i}"><i class="f" style="width:${pc}%"></i><span><span>${esc(o)}</span><span>${pc}%</span></span></button>`}).join('')}</section>`:''}
+  </div>`;
+}
+
+/* ---------- player ---------- */
+let curPlayer=null;
+function openPlayer(id,n){
+  const s=byId(id);if(!s){location.hash='#home';return}
+  const P=$('#player');P.classList.remove('hide');document.body.style.overflow='hidden';
+  P.innerHTML=s.episodes.map(e=>`<section class="pslide" data-n="${e.n}">${slideBody(s,e)}
+    <div class="pui"><div class="ptop"><button class="ic" data-close aria-label="رجوع"><svg><use href="#i-back"/></svg></button><span class="ttl">${esc(s.title)}</span></div>
+    <div class="pbot"><div class="txt"><h4>الحلقة ${e.n}${e.title?' · '+esc(e.title):''}</h4><p>${esc(e.summary)}</p></div>
+     <div class="side"><button data-fav="${esc(s.id)}" class="${S.favs.includes(s.id)?'on':''}"><svg style="fill:none"><use href="#i-heart"/></svg>مكتبتي</button>
+      <button data-eps><svg><use href="#i-list"/></svg>الحلقات</button><button data-share><svg><use href="#i-share"/></svg>مشاركة</button></div></div></div>
+    <div class="prog"><i></i></div></section>`).join('');
+  curPlayer={s};
+  const target=P.querySelector(`.pslide[data-n="${n}"]`)||P.firstElementChild;
+  requestAnimationFrame(()=>{P.scrollTop=target.offsetTop;watchSlides()});
+}
+function clipsOf(e){return e.video?[e.video]:(e.scenes||[]).filter(x=>x.video).map(x=>x.video)}
+function slideBody(s,e){
+  if(e.locked){const bg=e.thumb?`<img class="art" src="/v/${esc(e.thumb)}" alt="">`:art(s);
+    return `<div class="lock">${bg}<div class="pad"><svg><use href="#i-lock"/></svg></div><h3>الحلقة ${e.n} مقفلة</h3>
+     <p style="margin:0;color:#ccc">افتحها بـ ${s.price} عملة${S.me?` · رصيدك ${S.me.coins}`:''}</p>
+     <button class="cta" data-unlock="${e.n}"><span class="coin"></span>افتح بـ ${s.price} عملة</button>
+     <a class="cta ghost" href="#my" style="min-width:240px;justify-content:center">VIP — كل الحلقات مفتوحة</a></div>`}
+  const c=clipsOf(e);
+  if(c.length)return `<video playsinline preload="metadata" data-clips="${esc(c.join(','))}" data-i="0" src="/v/${esc(c[0])}"></video><div class="tap"></div><div class="pp"><svg width="34" height="34"><use href="#i-play"/></svg></div>`;
+  return `<div class="story"><h3 style="margin:0 0 6px">الحلقة ${e.n}</h3>${(e.scenes||[]).length?e.scenes.map(sc=>`<div class="sc"><b>${esc(sc.place)}</b><div style="color:#ccc">${esc(sc.action)}</div>${(sc.lines||[]).map(l=>`<div><b style="color:var(--acc)">${esc(l.who)}:</b> ${esc(l.text)}</div>`).join('')}</div>`).join(''):`<p>${esc(e.summary)}</p>`}${e.cliffhanger?`<p><b>وانتهت على:</b> ${esc(e.cliffhanger)}</p>`:''}</div>`;
+}
+let io=null;
+function watchSlides(){
+  io&&io.disconnect();
+  io=new IntersectionObserver(ents=>{for(const en of ents){const v=en.target.querySelector('video');
+    if(en.isIntersecting&&en.intersectionRatio>.6){const n=+en.target.dataset.n;history.replaceState(null,'','#play-'+curPlayer.s.id+'-'+n);
+      api('/api/u/progress',{method:'POST',body:JSON.stringify({sid:curPlayer.s.id,n})}).catch(()=>{});
+      const p=S.progress.find(x=>x.sid===curPlayer.s.id);if(p)p.n=n;else S.progress.unshift({sid:curPlayer.s.id,n});
+      if(v){v.play().catch(()=>{const pp=en.target.querySelector('.pp');pp&&pp.classList.add('show')})}}
+    else if(v)v.pause()}},{threshold:[0,.6,1]});
+  document.querySelectorAll('.pslide').forEach(x=>io.observe(x));
+}
+function closePlayer(){const P=$('#player');P.querySelectorAll('video').forEach(v=>v.pause());P.classList.add('hide');P.innerHTML='';io&&io.disconnect();document.body.style.overflow='';curPlayer=null}
+const P=$('#player');
+P.addEventListener('ended',e=>{const v=e.target;if(v.tagName!=='VIDEO')return;const l=v.dataset.clips.split(','),i=+v.dataset.i+1;
+  if(i<l.length){v.dataset.i=i;v.src='/v/'+l[i];v.play().catch(()=>{})}else{const nx=v.closest('.pslide').nextElementSibling;if(nx)nx.scrollIntoView({behavior:'smooth'})}},true);
+P.addEventListener('timeupdate',e=>{const v=e.target;if(v.tagName!=='VIDEO')return;const l=v.dataset.clips.split(',').length,i=+v.dataset.i;const f=((i+(v.currentTime/(v.duration||1)))/l)*100;const bar=v.closest('.pslide').querySelector('.prog i');if(bar)bar.style.width=f+'%'},true);
+P.addEventListener('click',async e=>{
+  if(e.target.closest('[data-close]')){const id=curPlayer.s.id;closePlayer();location.hash='#s-'+id;return}
+  const tap=e.target.closest('.tap');if(tap){const sl=tap.closest('.pslide'),v=sl.querySelector('video'),pp=sl.querySelector('.pp');if(v.paused){v.play().catch(()=>{});pp.classList.remove('show')}else{v.pause();pp.classList.add('show')}return}
+  const un=e.target.closest('[data-unlock]');if(un){unlock(curPlayer.s,+un.dataset.unlock);return}
+  if(e.target.closest('[data-eps]')){epsSheet(curPlayer.s);return}
+  if(e.target.closest('[data-share]')){const u=location.origin+'/#s-'+curPlayer.s.id;try{if(navigator.share)await navigator.share({title:curPlayer.s.title,url:u});else{await navigator.clipboard.writeText(u);toast('تم نسخ الرابط')}}catch(_){}return}
+  const f=e.target.closest('[data-fav]');if(f){await toggleFav(f.dataset.fav);f.classList.toggle('on',S.favs.includes(f.dataset.fav))}
+});
+function epsSheet(s){sheet(`<h3>${esc(s.title)}</h3><div class="epgrid">${s.episodes.map(e=>`<button class="ep ${e.n<=s.free?'free':''}" data-go="${e.n}">${e.n}${e.locked?'<svg class="lk"><use href="#i-lock"/></svg>':''}</button>`).join('')}</div>`,box=>{box.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(!g)return;closeSheet();const sl=P.querySelector(`.pslide[data-n="${g.dataset.go}"]`);if(sl)P.scrollTop=sl.offsetTop})})}
+async function unlock(s,n){
+  if(!S.me){authSheet('سجّل دخول عشان تفتح الحلقات، وخذ '+50+' عملة هدية');return}
+  try{const d=await api('/api/u/unlock',{method:'POST',body:JSON.stringify({sid:s.id,n})});if(d.coins!=null)S.me.coins=d.coins;setCoins();toast('تم فتح الحلقة '+n);await loadCatalog();openPlayer(s.id,n)}
+  catch(err){if(err.status===402){sheet(`<h3>رصيدك ما يكفي</h3><p>تحتاج ${s.price} عملة، ورصيدك ${S.me.coins}.</p><a class="cta full" href="#my" data-closesheet>اشحن رصيدك أو خذ مكافأة اليوم</a>`)}else toast(err.message)}
+}
+
+/* ---------- library & account ---------- */
+function lib(){
+  const favs=S.favs.map(byId).filter(Boolean),hist=S.progress.map(p=>byId(p.sid)).filter(Boolean);
+  $('#view').innerHTML=`<div class="wrap"><h2 style="font-weight:900;margin:8px 0 0">مكتبتي</h2>
+   ${!S.me?`<div class="empty">سجّل دخول عشان تحفظ مسلسلاتك وتكمل من وين وقفت.<br><button class="cta" data-auth style="margin-top:14px">تسجيل الدخول</button></div>`:''}
+   ${hist.length?`<section class="sec"><div class="sh"><h3>سجل المشاهدة</h3></div><div class="row">${hist.map(s=>card(s,{prog:1})).join('')}</div></section>`:''}
+   ${S.me?`<section class="sec"><div class="sh"><h3>المفضلة</h3><small>${favs.length}</small></div>${favs.length?`<div class="grid">${favs.map(s=>card(s)).join('')}</div>`:'<div class="empty">اضغط القلب على أي مسلسل يجيك هنا</div>'}</section>`:''}</div>`;
+}
+const PACKS=[{c:100,p:'9.99'},{c:300,p:'24.99',x:'+30 هدية'},{c:700,p:'49.99',x:'الأوفر'}];
+function my(){
+  if(!S.me){$('#view').innerHTML=`<div class="wrap"><div class="pcard"><div class="av">؟</div><div><b>أهلاً بك في حكايا</b><div style="color:var(--mut);font-size:13px">سجّل وخذ 50 عملة هدية</div></div></div>
+    <button class="cta full" data-auth>تسجيل / دخول</button>${walletHtml()}</div>`;return}
+  const u=S.me;
+  $('#view').innerHTML=`<div class="wrap"><div class="pcard"><div class="av">${esc(u.name.slice(0,1))}</div><div style="flex:1"><b style="font-size:18px">${esc(u.name)}</b>${u.vip?' <span class="tag" style="background:var(--gold);color:#000">VIP</span>':''}<div style="color:var(--mut);font-size:13px">${esc(u.email)}</div></div></div>
+   ${walletHtml()}
+   <div class="list"><a href="#lib">مكتبتي وسجل المشاهدة <svg width="18" height="18" style="transform:scaleX(-1)"><use href="#i-back"/></svg></a><button data-logout>تسجيل الخروج</button></div></div>`;
+}
+function walletHtml(){const u=S.me;return `<div class="wallet"><div style="color:var(--mut);font-size:13px">رصيدك</div><div class="big"><span class="coin"></span>${u?u.coins:0}</div>
+   ${u?`<button class="cta ${u.checkedToday?'ghost':''} full" data-checkin ${u.checkedToday?'disabled':''}>${u.checkedToday?'أخذت مكافأة اليوم ✓':'مكافأة اليوم: +'+S.checkin+' عملة'}</button>`:''}
+   <div class="packs">${PACKS.map(p=>`<button class="pack" data-buy>${p.x?`<span class="x">${p.x}</span>`:''}<b><span class="coin"></span>${p.c}</b><small>${p.p} ر.س</small></button>`).join('')}</div></div>
+   <div class="vip"><h3>VIP حكايا</h3><p style="margin:6px 0 10px;color:#e8d9a8">كل الحلقات مفتوحة بدون عملات، وأول من يشاهد الجديد.</p><div class="packs" style="grid-template-columns:1fr 1fr;margin:0"><button class="pack" data-buy><b>أسبوعي</b><small>29.99 ر.س</small></button><button class="pack" data-buy><span class="x">الأوفر</span><b>شهري</b><small>79.99 ر.س</small></button></div></div>`}
+
+/* ---------- sheets ---------- */
+function sheet(html,bind){closeSheet();const d=document.createElement('div');d.className='sheet';d.id='sheet';d.innerHTML=`<div class="box">${html}</div>`;d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-closesheet]'))closeSheet()});document.body.appendChild(d);bind&&bind(d.firstElementChild)}
+function closeSheet(){const s=$('#sheet');s&&s.remove()}
+function authSheet(msg){let mode='reg';const draw=box=>{box.innerHTML=`<h3>${mode==='reg'?'حساب جديد':'تسجيل الدخول'}</h3>${msg?`<p style="margin:0 0 6px;color:var(--gold)">${esc(msg)}</p>`:''}
+  <form id="af">${mode==='reg'?'<label class="field"><input name="name" placeholder="اسمك" autocomplete="name"></label>':''}
+  <label class="field"><input name="email" type="email" placeholder="البريد الإلكتروني" autocomplete="email" required></label>
+  <label class="field"><input name="password" type="password" placeholder="كلمة السر" autocomplete="${mode==='reg'?'new-password':'current-password'}" required minlength="6"></label>
+  <button class="cta full" type="submit">${mode==='reg'?'سجّل وخذ 50 عملة':'دخول'}</button><div class="err" id="ae"></div></form>
+  <button class="link" id="sw">${mode==='reg'?'عندك حساب؟ سجّل دخول':'ما عندك حساب؟ سجّل الحين'}</button>`;
+  box.querySelector('#sw').onclick=()=>{mode=mode==='reg'?'login':'reg';draw(box)};
+  box.querySelector('#af').onsubmit=async ev=>{ev.preventDefault();const f=Object.fromEntries(new FormData(ev.target));
+    try{const d=await api(mode==='reg'?'/api/u/register':'/api/u/login',{method:'POST',body:JSON.stringify(f)});closeSheet();if(d.welcome)toast('أهلاً! أضفنا '+d.welcome+' عملة لرصيدك');await loadAll();route()}catch(err){box.querySelector('#ae').textContent=err.message}}};
+  sheet('',draw)}
+function searchSheet(){sheet(`<h3>ابحث</h3><form id="sf"><label class="field"><input name="q" placeholder="اسم مسلسل أو نوع…" value="${esc(S.q)}" autofocus></label><button class="cta full">بحث</button></form>`,box=>{box.querySelector('#sf').onsubmit=e=>{e.preventDefault();S.q=new FormData(e.target).get('q').trim();closeSheet();location.hash='#home';route()}})}
+
+/* ---------- actions ---------- */
+async function toggleFav(id){if(!S.me){authSheet('سجّل عشان تحفظ المسلسل في مكتبتك');return}const on=!S.favs.includes(id);S.favs=on?[id,...S.favs]:S.favs.filter(x=>x!==id);toast(on?'أضيف لمكتبتك':'انحذف من مكتبتك');try{await api('/api/u/fav',{method:'POST',body:JSON.stringify({sid:id,on})})}catch(e){}if(!curPlayer)route()}
+document.addEventListener('click',async e=>{
+  const g=e.target.closest('[data-g]');if(g){S.genre=g.dataset.g;home();return}
+  if(e.target.closest('#clearQ')){S.q='';home();return}
+  if(e.target.closest('#searchBtn')){searchSheet();return}
+  if(e.target.closest('[data-auth]')){authSheet();return}
+  if(e.target.closest('[data-buy]')){toast('الشراء الإلكتروني يتفعّل قريباً');return}
+  if(e.target.closest('[data-logout]')){await api('/api/u/logout');S.me=null;S.favs=[];S.progress=[];setCoins();await loadCatalog();route();return}
+  if(e.target.closest('[data-checkin]')){try{const d=await api('/api/u/checkin',{method:'POST'});S.me.coins=d.coins;S.me.checkedToday=true;setCoins();toast('+'+d.added+' عملة');my()}catch(err){toast(err.message)}return}
+  const f=e.target.closest('#view [data-fav]');if(f){toggleFav(f.dataset.fav);return}
+  const v=e.target.closest('[data-vote]');if(v){try{const d=await api('/api/vote',{method:'POST',body:JSON.stringify({key:v.dataset.vote,idx:+v.dataset.i})});S.counts=d.counts;S.mine=d.mine;route()}catch(err){toast(err.message)}}
+});
+
+/* ---------- data & routing ---------- */
+function setCoins(){$('#coinN').textContent=S.me?S.me.coins:'دخول'}
+async function loadCatalog(){try{const d=await api('/api/catalog');S.series=d.series}catch(e){}S.loaded=true}
+async function loadMe(){try{const d=await api('/api/u/me');S.me=d.user;if(d.user){S.progress=d.progress;S.favs=d.favs;S.checkin=d.checkin}}catch(e){}setCoins()}
+async function loadVotes(){try{const v=await api('/api/votes');S.counts=v.counts;S.mine=v.mine}catch(e){}}
+async function loadAll(){await Promise.all([loadCatalog(),loadMe(),loadVotes()])}
+function route(){
+  const h=location.hash||'#home';let m;
+  if((m=h.match(/^#play-([a-z0-9]+)-(\d+)$/i))){$('#tabs').classList.add('hide');if(!curPlayer||curPlayer.s.id!==m[1])openPlayer(m[1],+m[2]);return}
+  if(curPlayer)closePlayer();
+  $('#tabs').classList.remove('hide');
+  const t=h.startsWith('#s-')?'home':h.slice(1);
+  document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.t===t));
+  if((m=h.match(/^#s-([a-z0-9]+)$/i)))seriesPage(m[1]);else if(h==='#lib')lib();else if(h==='#my')my();else home();
+  window.scrollTo(0,0);
+}
+addEventListener('hashchange',route);
+route();
+loadAll().then(route);
+}
+</script>
+</body>
+</html>

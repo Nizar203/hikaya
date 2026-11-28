@@ -95,12 +95,13 @@ video{width:100%;border-radius:12px;background:#000;max-height:520px}
 <body>
 <header class="top">
   <div class="brand"><i></i>حكايا</div>
-  <nav id="nav"><a href="#site" id="nSite">المسلسلات</a><a href="#studio" id="nStudio" class="hide">الاستوديو</a></nav>
+  <nav id="nav"><a href="/" id="nSite">الموقع</a><a href="#users" id="nUsers" class="hide">المشاهدون</a><a href="#studio" id="nStudio" class="hide">الاستوديو</a></nav>
 </header>
 
 <main id="site"></main>
 
 <main id="login" class="hide"><div class="band" style="max-width:440px"><form class="panel" id="loginForm"><h2>دخول الاستوديو</h2><label class="t" for="pw">كلمة السر</label><input type="password" id="pw" autocomplete="current-password" style="width:100%;font:inherit;font-size:16px;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)"><button class="btn red big" type="submit">دخول</button><div class="status" id="loginMsg"></div></form></div></main>
+<main id="users" class="hide"><div class="band"><h2>المشاهدون</h2><div id="utot" class="note"></div><div id="ulist" style="margin-top:14px"></div></div></main>
 <main id="studio" class="hide">
   <div class="band grid2">
     <form class="panel" id="gen">
@@ -141,7 +142,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const OPTS={
   heroes:['فواكه','قطط','حيوانات','خضار','بشر','حشرات'],
-  genre:['مغامرة','خيانة ودراما','برنامج مواعدة','كوميديا','رعب وغموض','أكشن','دراما عائلية'],
+  genre:['انتقام','رومانسي','مليونير متخفي','مغامرة','خيانة ودراما','برنامج مواعدة','كوميديا','رعب وغموض','أكشن','دراما عائلية'],
   look:['3D كرتوني لامع','واقعي سينمائي','أنمي']
 };
 const LOOK_EN={'3D كرتوني لامع':'glossy 3D animated, Pixar-like, soft cinematic lighting, vibrant colors','واقعي سينمائي':'photorealistic live-action, realistic human actors, natural skin texture and detailed faces, cinematic shallow depth of field, dramatic lighting, 4k hyperrealistic, filmic color grade','أنمي':'high quality anime style, cel shading, expressive faces'};
@@ -253,6 +254,13 @@ function renderStudio(){
      <button class="btn ghost" data-act="del">حذف</button></div></div>
     <p>${esc(s.logline)}</p>
     <p class="note">${esc(s.heroes)} · ${esc(s.genre)} · لهجة ${esc(s.dialect)} · ${s.episodes.length} حلقات · المنشور ${pubCount}</p>
+    <div class="row" style="gap:14px;margin:10px 0">
+     <label class="note">الحلقات المجانية <input type="number" min="0" max="50" value="${Number.isInteger(s.freeEps)?s.freeEps:5}" data-set="freeEps" style="width:80px"></label>
+     <label class="note">سعر الحلقة (عملات) <input type="number" min="0" max="500" value="${Number.isInteger(s.epPrice)?s.epPrice:10}" data-set="epPrice" style="width:80px"></label>
+     <label class="note"><input type="checkbox" data-set="featured" ${s.featured?'checked':''}> مميز في الواجهة</label>
+    </div>
+    <div class="row" style="align-items:flex-end">${s.cover?`<img src="/v/${esc(s.cover)}" alt="الغلاف" style="width:120px;aspect-ratio:2/3;object-fit:cover;border-radius:10px">`:''}
+     ${S.video?`<button class="btn ${s.cover?'ghost':'red'}" data-act="cover" ${CI[s.id+'_cover']?'disabled':''}>${CI[s.id+'_cover']?esc(CI[s.id+'_cover']):(s.cover?'أعد الغلاف':'ولّد غلاف المسلسل')}</button>`:''}</div>
     <div class="row"><span class="note">أسلوب الصورة لكل اللقطات:</span><button class="copy" data-copy="${esc(s.style_en)}">نسخ</button></div>
     <div class="prompt">${esc(s.style_en)}</div>
    </div>
@@ -319,10 +327,16 @@ document.addEventListener('click',async e=>{
   if(act==='listen')speakEp(s,ep,a);
   if(act==='genScene')genVideo(s,ep,+a.dataset.i);
   if(act==='charImg')charImage(s,+a.dataset.c);
+  if(act==='cover'){const key=s.id+'_cover';CI[key]='جاري تصميم الغلاف…';renderStudio();
+    const hero=s.characters.filter(c=>c.img);
+    try{const d=await api('/api/image',{method:'POST',body:JSON.stringify({aspect:'3:4',refs:hero.slice(0,3).map(c=>c.img),prompt:`Cinematic vertical poster for a short drama series titled "${s.title}" (do NOT write any text or letters on the image). Genre: ${s.genre}. Story: ${s.logline}. Main characters, dramatic lighting, emotional close-up composition like a Netflix/ReelShort drama poster. ${hero.length?'Characters must look exactly like the reference images.':''} Style: ${s.style_en}.`})});s.cover=d.id;delete CI[key];await save(s)}
+    catch(err){delete CI[key];alertNote('الغلاف: '+err.message);renderStudio()}}
   if(act==='allChars'){for(let k=0;k<s.characters.length;k++){if(!s.characters[k].img){const ok=await charImage(s,k);if(!ok)break}}}
   if(act==='genAll'){for(let i=0;i<ep.scenes.length;i++){if(!ep.scenes[i].video&&!vbusy(s,ep,i)){const ok=await genVideo(s,ep,i);if(ok===false)break}}}
 });
 document.addEventListener('change',async e=>{
+  const st=e.target.closest('[data-set]');
+  if(st){const s=S.series.find(x=>x.id===S.cur);if(!s)return;const k=st.dataset.set;s[k]=k==='featured'?st.checked:Math.max(0,parseInt(st.value)||0);await save(s);return}
   const inp=e.target.closest('[data-act=upload]');if(!inp||!inp.files[0])return;
   const f=inp.files[0],s=S.series.find(x=>x.id===S.cur),ep=s.episodes.find(x=>x.n===+inp.closest('.ep').dataset.n);
   const lab=inp.parentElement;
@@ -434,7 +448,20 @@ $('#site').addEventListener('click',async e=>{
 });
 
 /* ---------- routing ---------- */
+async function renderUsers(){
+  const box=$('#ulist');box.textContent='جاري التحميل…';
+  try{const d=await api('/api/admin/users');$('#utot').textContent=`${d.totals.users} مشترك · ${d.totals.coins} عملة في الأرصدة · ${d.totals.unlocks} حلقة مفتوحة`;
+    box.innerHTML=d.users.length?`<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:start">الاسم</th><th style="text-align:start">البريد</th><th>العملات</th><th>VIP</th><th>إضافة</th></tr></thead><tbody>${d.users.map(u=>`<tr style="border-top:1px solid var(--line)"><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td style="text-align:center">${u.coins}</td><td style="text-align:center">${u.vip_until&&new Date(u.vip_until)>new Date()?new Date(u.vip_until).toLocaleDateString('ar'):'—'}</td>
+      <td><div class="row" style="justify-content:center"><button class="copy" data-grant="${esc(u.id)}" data-c="100">+100 عملة</button><button class="copy" data-grant="${esc(u.id)}" data-v="30">VIP شهر</button></div></td></tr>`).join('')}</tbody></table>`:'<p class="note">ما فيه مشتركين للحين.</p>';
+  }catch(err){box.textContent=err.message}
+}
+document.addEventListener('click',async e=>{const g=e.target.closest('[data-grant]');if(!g)return;g.disabled=true;
+  try{await api('/api/admin/grant',{method:'POST',body:JSON.stringify({uid:g.dataset.grant,coins:g.dataset.c?+g.dataset.c:0,vipDays:g.dataset.v?+g.dataset.v:0})});renderUsers()}catch(err){alert&&0;g.textContent=err.message}});
 function render(){
+  if(!location.hash||location.hash==='#site'){history.replaceState(null,'','#studio')}
+  const users=location.hash==='#users'&&S.canEdit;
+  $('#users').classList.toggle('hide',!users);$('#nUsers').classList.toggle('hide',!S.canEdit);$('#nUsers').classList.toggle('on',users);
+  if(users){$('#site').classList.add('hide');$('#studio').classList.add('hide');$('#login').classList.add('hide');$('#nStudio').classList.remove('on');$('#nStudio').classList.remove('hide');renderUsers();return}
   const studio=location.hash==='#studio'&&S.canEdit,login=location.hash==='#studio'&&!S.canEdit;
   $('#login').classList.toggle('hide',!login);
   $('#site').classList.toggle('hide',studio||login);$('#studio').classList.toggle('hide',!studio);
