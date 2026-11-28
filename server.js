@@ -21,6 +21,31 @@ const MAX_VIDEO = 20 * 1024 * 1024;
 const OR_KEY = process.env.OPENROUTER_API_KEY || (/openrouter\.ai/.test(process.env.SAUDI_BUILD_URL || 'https://openrouter.ai') ? process.env.SAUDI_BUILD_KEY || '' : '');
 // أفضل جودة وبشر واقعيين: Veo 3.1 Fast (جودة Veo بتكلفة أقل ~0.12$/ث). للجودة القصوى: VIDEO_MODEL=google/veo-3.1
 const VIDEO_MODEL = process.env.VIDEO_MODEL || 'google/veo-3.1-fast';
+// صور الشخصيات والإطار الأول للقطة (لثبات الشكل): Gemini Flash Image عبر OpenRouter
+const IMAGE_MODEL = process.env.IMAGE_MODEL || 'google/gemini-3.1-flash-image';
+async function dataUrlOf(id) {
+  const r = await pool.query('SELECT type, data FROM videos WHERE id=$1', [id]);
+  if (!r.rows.length || !/^image\//.test(r.rows[0].type)) return null;
+  return 'data:' + r.rows[0].type + ';base64,' + r.rows[0].data.toString('base64');
+}
+async function genImage(prompt, refIds, aspect) {
+  const content = [{ type: 'text', text: prompt }];
+  for (const id of (refIds || []).slice(0, 4)) { const u = await dataUrlOf(id); if (u) content.push({ type: 'image_url', image_url: { url: u } }); }
+  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + OR_KEY, 'content-type': 'application/json', 'X-Title': 'Hikaya' },
+    body: JSON.stringify({ model: IMAGE_MODEL, modalities: ['image', 'text'], image_config: { aspect_ratio: aspect || '9:16' }, messages: [{ role: 'user', content }] })
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { console.error('image', r.status, JSON.stringify(d).slice(0, 400)); throw Object.assign(new Error(r.status === 402 ? 'رصيد OpenRouter ما يكفي' : (d?.error?.message || 'تعذر توليد الصورة')), { status: r.status }); }
+  const url = d.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
+  const m = /^data:(image\/[a-z+]+);base64,(.+)$/s.exec(url);
+  if (!m) { console.error('image no data', JSON.stringify(d).slice(0, 300)); throw new Error('النموذج ما رجّع صورة، جرّب مرة ثانية'); }
+  const id = crypto.randomBytes(9).toString('hex');
+  await pool.query('INSERT INTO videos(id,type,data) VALUES($1,$2,$3)', [id, m[1], Buffer.from(m[2], 'base64')]);
+  console.log('image saved', id, 'refs', content.length - 1);
+  return id;
+}
 const VIDEO_RES = process.env.VIDEO_RESOLUTION || '1080p';
 const VIDEO_SECS = Number(process.env.VIDEO_SECONDS || 8);
 
@@ -186,10 +211,20 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { text: (d.content || []).map(c => c.text || '').join(''), engine: 'claude' });
     }
 
+    if (p === '/api/image' && req.method === 'POST') {
+      if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
+      if (!OR_KEY) return send(res, 503, { error: 'مفتاح OpenRouter غير مضاف (SAUDI_BUILD_KEY)' });
+      const { prompt, refs, aspect } = await json(req);
+      if (typeof prompt !== 'string' || prompt.length < 5) return send(res, 400, { error: 'وصف الصورة فاضي' });
+      const ids = Array.isArray(refs) ? refs.filter(x => /^[a-f0-9]{18}$/.test(x)) : [];
+      try { return send(res, 200, { id: await genImage(prompt.slice(0, 6000), ids, ['9:16', '3:4', '1:1'].includes(aspect) ? aspect : '9:16') }); }
+      catch (e) { return send(res, e.status === 402 ? 402 : 502, { error: e.message }); }
+    }
+
     if (p === '/api/video/start' && req.method === 'POST') {
       if (!isAdmin(req)) return send(res, 403, { error: 'للمدير فقط' });
       if (!OR_KEY) return send(res, 503, { error: 'مفتاح OpenRouter غير مضاف (SAUDI_BUILD_KEY)' });
-      const { prompt, resolution, duration } = await json(req);
+      const { prompt, resolution, duration, firstFrame } = await json(req);
       // Veo يقبل فقط 4/6/8 ثواني للقطة؛ نماذج أخرى (wan) تقبل حتى 30
       let secs = Number.isInteger(duration) && duration >= 2 && duration <= 30 ? duration : VIDEO_SECS;
       if (/veo/i.test(VIDEO_MODEL)) secs = secs >= 8 ? 8 : secs >= 6 ? 6 : 4;
@@ -198,7 +233,8 @@ const server = http.createServer(async (req, res) => {
       const r = await fetch('https://openrouter.ai/api/v1/videos', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + OR_KEY, 'content-type': 'application/json', 'X-Title': 'Hikaya' },
-        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: secs, resolution: res2, aspect_ratio: '9:16', generate_audio: true })
+        body: JSON.stringify({ model: VIDEO_MODEL, prompt: prompt.slice(0, 4000), duration: secs, resolution: res2, aspect_ratio: '9:16', generate_audio: true,
+          ...(typeof firstFrame === 'string' && /^[a-f0-9]{18}$/.test(firstFrame) ? { frame_images: [{ type: 'image_url', image_url: { url: 'https://' + req.headers.host + '/v/' + firstFrame }, frame_type: 'first_frame' }] } : {}) })
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.id) { console.error('video start', r.status, JSON.stringify(d).slice(0, 400)); return send(res, r.status === 402 ? 402 : 502, { error: r.status === 402 ? (d?.error?.metadata?.reason === 'in_flight_budget_exhausted' ? 'فيه فيديوهات قيد التوليد تحجز الرصيد، انتظر لين تخلص' : 'رصيد OpenRouter ما يكفي، اشحن الرصيد من openrouter.ai/settings/credits') : (d?.error?.message || ('تعذر بدء الفيديو ' + r.status)) }); }

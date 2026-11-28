@@ -257,7 +257,10 @@ function renderStudio(){
     <div class="prompt">${esc(s.style_en)}</div>
    </div>
    <div><h2>الشخصيات</h2><p class="note">انسخ وصف كل شخصية وولّد لها صورة مرجعية أولاً، عشان يبقى شكلها ثابت في كل الحلقات.</p>
-   <div class="cast">${s.characters.map(c=>`<div class="char"${c.hero?' style="border:2px solid var(--red)"':''}><b>${esc(c.name)}</b>${c.hero?' <span class="pub">البطل</span>':''}<div class="role">${esc(c.role)}</div><div class="note">${esc(c.personality)}</div><div class="look">${esc(c.look_en)}</div><button class="copy" data-copy="${esc(c.look_en+', '+s.style_en+', character reference sheet, front and side view')}">نسخ أمر صورة الشخصية</button></div>`).join('')}</div></div>
+   <div class="cast">${s.characters.map(c=>`<div class="char"${c.hero?' style="border:2px solid var(--red)"':''}><b>${esc(c.name)}</b>${c.hero?' <span class="pub">البطل</span>':''}<div class="role">${esc(c.role)}</div><div class="note">${esc(c.personality)}</div><div class="look">${esc(c.look_en)}</div>${c.img?`<img src="/v/${esc(c.img)}" alt="${esc(c.name)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;margin-top:8px">`:''}
+   <div class="row" style="margin-top:8px">${S.video?`<button class="btn ${c.img?'ghost':'red'}" data-act="charImg" data-c="${s.characters.indexOf(c)}" ${CI[s.id+'_'+s.characters.indexOf(c)]?'disabled':''}>${CI[s.id+'_'+s.characters.indexOf(c)]?esc(CI[s.id+'_'+s.characters.indexOf(c)]):(c.img?'أعد صورة الشخصية':'ولّد صورة الشخصية')}</button>`:''}
+   <button class="copy" data-copy="${esc(c.look_en+', '+s.style_en+', character reference sheet, front and side view')}">نسخ أمر الصورة</button></div></div>`).join('')}</div>
+   ${S.video?`<div class="row" style="margin-top:10px"><button class="btn lime" data-act="allChars">ولّد صور كل الشخصيات</button><span class="note">الصور تثبّت شكل الشخصيات في كل لقطات الفيديو.</span></div>`:''}</div>
    <div><h2>الحلقات</h2><div style="display:grid;gap:10px;margin-top:10px">${s.episodes.map(ep=>epCard(s,ep)).join('')}</div></div>
   </div>`;
 }
@@ -315,6 +318,8 @@ document.addEventListener('click',async e=>{
   }
   if(act==='listen')speakEp(s,ep,a);
   if(act==='genScene')genVideo(s,ep,+a.dataset.i);
+  if(act==='charImg')charImage(s,+a.dataset.c);
+  if(act==='allChars'){for(let k=0;k<s.characters.length;k++){if(!s.characters[k].img){const ok=await charImage(s,k);if(!ok)break}}}
   if(act==='genAll'){for(let i=0;i<ep.scenes.length;i++){if(!ep.scenes[i].video&&!vbusy(s,ep,i)){const ok=await genVideo(s,ep,i);if(ok===false)break}}}
 });
 document.addEventListener('change',async e=>{
@@ -326,7 +331,16 @@ document.addEventListener('change',async e=>{
   try{const r=await fetch('/api/upload',{method:'POST',credentials:'same-origin',headers:{'Content-Type':f.type||'video/mp4'},body:f});const d=await r.json();if(!r.ok)throw d;ep.video=d.id;S.open=ep.n;await save(s)}catch(err){lab.firstChild.textContent=(err&&err.error)||'تعذر الرفع'}
 });
 
-const VS={};
+const VS={},CI={};
+async function charImage(s,k){
+  const c=s.characters[k];if(!c)return false;const key=s.id+'_'+k;
+  CI[key]='جاري رسم الشخصية…';renderStudio();
+  try{const d=await api('/api/image',{method:'POST',body:JSON.stringify({aspect:'3:4',prompt:`Character reference portrait for a series. ${c.look_en}. Style: ${s.style_en}. Full body, front view, standing, neutral pose, plain soft studio background, sharp detailed face, consistent design. No text.`})});
+    c.img=d.id;delete CI[key];await save(s);return true}
+  catch(err){CI[key]='';delete CI[key];alertNote('صورة '+c.name+': '+err.message);renderStudio();return false}
+}
+function alertNote(m){const el=$('#genStatus');if(el){el.textContent=m;el.className='status err'}}
+function sceneChars(s,sc){const t=(sc.prompt_en+' '+(sc.lines||[]).map(l=>l.who).join(' ')).toLowerCase();return s.characters.filter(c=>c.img&&(t.includes(c.name.toLowerCase())||(sc.lines||[]).some(l=>l.who===c.name)))}
 const vkey=(s,ep,i)=>s.id+'_'+ep.n+'_'+i;
 const vstat=(s,ep,i)=>(VS[vkey(s,ep,i)]||{}).t||'';
 const vbusy=(s,ep,i)=>!!(VS[vkey(s,ep,i)]||{}).busy;
@@ -336,7 +350,12 @@ async function genVideo(s,ep,i,resumeJob){
   setV(s,ep,i,'جاري البدء…',true);
   let job=resumeJob;
   try{
-    if(!job){const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en,resolution:$('#vres').value,duration:ep.clipSecs||8})});job=d.job;sc.job=job;await save(s)}
+    if(!job){
+      const cs=sceneChars(s,sc);
+      if(cs.length){setV(s,ep,i,'جاري رسم أول إطار…',true);
+        try{const f=await api('/api/image',{method:'POST',body:JSON.stringify({aspect:'9:16',refs:cs.map(c=>c.img),prompt:`Opening frame of a vertical 9:16 cinematic shot. Characters must look EXACTLY like the reference images (same face, body, colors, clothes). Characters: ${cs.map(c=>c.name+' — '+c.look_en).join(' | ')}. Scene: ${sc.prompt_en.split(/Dialogue/i)[0]}. Style: ${s.style_en}. No text, no captions.`})});sc.frame=f.id}catch(e){}
+        setV(s,ep,i,'جاري بدء الفيديو…',true)}
+      const d=await api('/api/video/start',{method:'POST',body:JSON.stringify({prompt:sc.prompt_en,resolution:$('#vres').value,duration:ep.clipSecs||8,firstFrame:sc.frame||undefined})});job=d.job;sc.job=job;await save(s)}
     for(let k=0;k<60;k++){
       await new Promise(r=>setTimeout(r,15000));
       const st=await api('/api/video/status?job='+encodeURIComponent(job));
